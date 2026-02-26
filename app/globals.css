@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════
+   DigiFlux Assets — Clean White Theme
+   ═══════════════════════════════════════════ */
+
+:root {
+  --background: #ffffff;
+  --foreground: #1f2937;
+
+  /* Brand — Parrot Green */
+  --brand: #76C043;
+  --brand-hover: #65a83a;
+  --brand-active: #569130;
+  --brand-light: #eef8e6;
+  --brand-ring: rgba(118, 192, 67, 0.25);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: #ffffff;
+  color: #1f2937;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════ Scrollbar ═══════ */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f9fafb;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
