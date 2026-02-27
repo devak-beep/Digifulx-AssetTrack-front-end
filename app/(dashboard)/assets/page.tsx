@@ -18,11 +18,24 @@ interface Asset {
 export default function AssetsPage() {
     const { user, token } = useAuth();
     const [assets, setAssets] = useState<Asset[]>([]);
+    const [filteredAssets, setFilteredAssets] = useState<Asset[]>([]);
+    
+    // Clear any cached data on mount
+    useEffect(() => {
+        setAssets([]);
+    }, []);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+    
+    // Filter state
+    const [filters, setFilters] = useState({
+        category: "",
+        brand: "",
+        status: ""
+    });
     
     // Form state
     const [formData, setFormData] = useState({
@@ -43,22 +56,51 @@ export default function AssetsPage() {
     useEffect(() => {
         fetchAssets();
     }, [token]);
+    
+    // Apply filters whenever assets or filters change
+    useEffect(() => {
+        let filtered = assets;
+        
+        if (filters.category) {
+            filtered = filtered.filter(a => a.category === filters.category);
+        }
+        if (filters.brand) {
+            filtered = filtered.filter(a => a.brand === filters.brand);
+        }
+        if (filters.status) {
+            filtered = filtered.filter(a => a.status === filters.status);
+        }
+        
+        setFilteredAssets(filtered);
+    }, [assets, filters]);
 
     const fetchAssets = async () => {
         if (!token) return;
         
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-            const response = await fetch(`${baseUrl}/assets?limit=1000`, {
+            // Add cache busting and no-cache headers
+            const response = await fetch(`${baseUrl}/assets?limit=1000&t=${Date.now()}`, {
                 headers: {
-                    "Authorization": `Bearer ${token}`
-                }
+                    "Authorization": `Bearer ${token}`,
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache"
+                },
+                cache: 'no-store'
             });
 
             const data = await response.json();
+            
+            console.log('API Response:', data);
+            console.log('Fetched assets from API:', data.data?.assets?.length);
+            console.log('First 3 assets:', data.data?.assets?.slice(0, 3).map((a: any) => a.brand + ' ' + a.model));
 
             if (data.success) {
-                setAssets(data.data.assets || []);
+                // Force clear and set fresh data
+                setAssets([]);
+                setTimeout(() => {
+                    setAssets(data.data.assets || []);
+                }, 0);
             } else {
                 setError(data.message || "Failed to fetch assets");
             }
@@ -176,7 +218,7 @@ export default function AssetsPage() {
                     <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center justify-between">
                             <p className="text-sm text-gray-600">
-                                Showing <span className="font-medium text-gray-900">{assets.length}</span> assets
+                                Showing <span className="font-medium text-gray-900">{filteredAssets.length}</span> of {assets.length} assets
                             </p>
                             <button 
                                 onClick={() => setShowModal(true)}
@@ -184,6 +226,60 @@ export default function AssetsPage() {
                             >
                                 + Add Asset
                             </button>
+                        </div>
+                    </div>
+                    
+                    {/* Filters */}
+                    <div className="px-6 py-4 bg-white border-b border-gray-200">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                                <select
+                                    value={filters.category}
+                                    onChange={(e) => setFilters({...filters, category: e.target.value})}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                >
+                                    <option value="">All Categories</option>
+                                    {[...new Set(assets.map(a => a.category))].map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Brand</label>
+                                <select
+                                    value={filters.brand}
+                                    onChange={(e) => setFilters({...filters, brand: e.target.value})}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                >
+                                    <option value="">All Brands</option>
+                                    {[...new Set(assets.map(a => a.brand))].map(brand => (
+                                        <option key={brand} value={brand}>{brand}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                                <select
+                                    value={filters.status}
+                                    onChange={(e) => setFilters({...filters, status: e.target.value})}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="available">Available</option>
+                                    <option value="assigned">Assigned</option>
+                                    <option value="maintenance">Maintenance</option>
+                                    <option value="retired">Retired</option>
+                                </select>
+                            </div>
+                            <div className="flex items-end">
+                                <button
+                                    onClick={() => setFilters({ category: "", brand: "", status: "" })}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Clear Filters
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -194,6 +290,7 @@ export default function AssetsPage() {
                                 <tr className="bg-gray-50 border-b border-gray-200">
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Brand</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Model</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Serial Number</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
@@ -202,13 +299,16 @@ export default function AssetsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {assets.map((asset) => (
+                                {filteredAssets.map((asset) => (
                                     <tr key={asset._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-semibold text-gray-900">{asset.brand}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-700">{asset.model}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-700 capitalize">{asset.category}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-600 font-mono">{asset.serialNumber}</div>

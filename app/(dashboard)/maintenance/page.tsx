@@ -11,10 +11,10 @@ interface Maintenance {
         brand: string;
         model: string;
         serialNumber: string;
-    };
+    } | null;
     type: string;
     frequency: string;
-    lastDate: string;
+    serviceDate: string;
     nextDate: string;
     status: string;
     description?: string;
@@ -47,6 +47,31 @@ export default function MaintenancePage() {
         cost: ""
     });
 
+    const calculateNextServiceDate = (lastDate: string, frequency: string): string => {
+        if (!lastDate) return "";
+        
+        const date = new Date(lastDate);
+        
+        switch (frequency) {
+            case 'weekly':
+                date.setDate(date.getDate() + 7);
+                break;
+            case 'monthly':
+                date.setMonth(date.getMonth() + 1);
+                break;
+            case 'quarterly':
+                date.setMonth(date.getMonth() + 3);
+                break;
+            case 'yearly':
+                date.setFullYear(date.getFullYear() + 1);
+                break;
+            case 'one-time':
+                return "";
+        }
+        
+        return date.toISOString().split('T')[0];
+    };
+
     useEffect(() => {
         fetchData();
     }, [token]);
@@ -58,11 +83,19 @@ export default function MaintenancePage() {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
             
             const [maintenanceRes, assetsRes] = await Promise.all([
-                fetch(`${baseUrl}/maintenance`, {
-                    headers: { "Authorization": `Bearer ${token}` }
+                fetch(`${baseUrl}/maintenance?t=${Date.now()}`, {
+                    headers: { 
+                        "Authorization": `Bearer ${token}`,
+                        "Cache-Control": "no-cache, no-store, must-revalidate"
+                    },
+                    cache: 'no-store'
                 }),
-                fetch(`${baseUrl}/assets?limit=1000`, {
-                    headers: { "Authorization": `Bearer ${token}` }
+                fetch(`${baseUrl}/assets?limit=1000&t=${Date.now()}`, {
+                    headers: { 
+                        "Authorization": `Bearer ${token}`,
+                        "Cache-Control": "no-cache, no-store, must-revalidate"
+                    },
+                    cache: 'no-store'
                 })
             ]);
 
@@ -72,9 +105,12 @@ export default function MaintenancePage() {
             ]);
 
             if (maintenanceData.success) {
+                console.log('Maintenance data:', maintenanceData.data);
+                console.log('First record assetId:', maintenanceData.data[0]?.assetId);
                 setMaintenances(maintenanceData.data || []);
             }
             if (assetsData.success) {
+                console.log('Assets loaded:', assetsData.data.assets);
                 setAssets(assetsData.data.assets || []);
             }
         } catch (err) {
@@ -91,10 +127,6 @@ export default function MaintenancePage() {
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
             
-            // Convert DD/MM/YYYY to YYYY-MM-DD
-            const [day, month, year] = formData.serviceDate.split('/');
-            const isoDate = `${year}-${month}-${day}`;
-            
             const response = await fetch(`${baseUrl}/maintenance`, {
                 method: "POST",
                 headers: {
@@ -103,7 +135,6 @@ export default function MaintenancePage() {
                 },
                 body: JSON.stringify({
                     ...formData,
-                    serviceDate: isoDate,
                     cost: parseFloat(formData.cost) || 0
                 })
             });
@@ -160,8 +191,10 @@ export default function MaintenancePage() {
     };
 
     const handleCompleteClick = (id: string) => {
+        console.log('Mark Complete clicked for:', id);
         setSelectedMaintenance(id);
         setShowCompleteModal(true);
+        console.log('Modal should show now');
     };
 
     return (
@@ -238,7 +271,7 @@ export default function MaintenancePage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-600">
-                                                {new Date(maintenance.lastDate).toLocaleDateString('en-GB')}
+                                                {maintenance.serviceDate ? new Date(maintenance.serviceDate).toLocaleDateString('en-GB') : '-'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -342,16 +375,27 @@ export default function MaintenancePage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Service Date *</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Service Date *</label>
                                     <input
-                                        type="text"
+                                        type="date"
                                         required
                                         value={formData.serviceDate}
                                         onChange={(e) => setFormData({...formData, serviceDate: e.target.value})}
-                                        placeholder="DD/MM/YYYY"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
                                     />
                                 </div>
+
+                                {formData.serviceDate && formData.frequency !== 'one-time' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Next Service Date</label>
+                                        <input
+                                            type="date"
+                                            value={calculateNextServiceDate(formData.serviceDate, formData.frequency)}
+                                            disabled
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                                        />
+                                    </div>
+                                )}
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Cost</label>

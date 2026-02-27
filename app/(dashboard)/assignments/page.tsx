@@ -42,12 +42,20 @@ interface User {
 export default function AssignmentsPage() {
     const { token } = useAuth();
     const [assignments, setAssignments] = useState<Assignment[]>([]);
+    const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([]);
     const [assets, setAssets] = useState<Asset[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    
+    // Filter state
+    const [filters, setFilters] = useState({
+        category: "",
+        user: "",
+        status: ""
+    });
     const [categories, setCategories] = useState<string[]>([]);
     const [formData, setFormData] = useState({
         category: "",
@@ -59,6 +67,23 @@ export default function AssignmentsPage() {
     useEffect(() => {
         fetchData();
     }, [token]);
+    
+    // Apply filters
+    useEffect(() => {
+        let filtered = assignments;
+        
+        if (filters.category) {
+            filtered = filtered.filter(a => a.assetId?.category === filters.category);
+        }
+        if (filters.user) {
+            filtered = filtered.filter(a => a.userId?._id === filters.user);
+        }
+        if (filters.status) {
+            filtered = filtered.filter(a => a.status === filters.status);
+        }
+        
+        setFilteredAssignments(filtered);
+    }, [assignments, filters]);
 
     const fetchData = async () => {
         if (!token) return;
@@ -168,7 +193,7 @@ export default function AssignmentsPage() {
                     <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center justify-between">
                             <p className="text-sm text-gray-600">
-                                Total <span className="font-medium text-gray-900">{assignments.length}</span> assignments
+                                Showing <span className="font-medium text-gray-900">{filteredAssignments.length}</span> of {assignments.length} assignments
                             </p>
                             <button 
                                 onClick={() => setShowModal(true)}
@@ -178,12 +203,65 @@ export default function AssignmentsPage() {
                             </button>
                         </div>
                     </div>
+                    
+                    {/* Filters */}
+                    <div className="px-6 py-4 bg-white border-b border-gray-200">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                                <select
+                                    value={filters.category}
+                                    onChange={(e) => setFilters({...filters, category: e.target.value})}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                >
+                                    <option value="">All Categories</option>
+                                    {[...new Set(assignments.map(a => a.assetId?.category).filter(Boolean))].map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">User</label>
+                                <select
+                                    value={filters.user}
+                                    onChange={(e) => setFilters({...filters, user: e.target.value})}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                >
+                                    <option value="">All Users</option>
+                                    {users.map(user => (
+                                        <option key={user._id} value={user._id}>{user.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                                <select
+                                    value={filters.status}
+                                    onChange={(e) => setFilters({...filters, status: e.target.value})}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="returned">Returned</option>
+                                </select>
+                            </div>
+                            <div className="flex items-end">
+                                <button
+                                    onClick={() => setFilters({ category: "", user: "", status: "" })}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-200">
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Asset</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assigned To</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assigned Date</th>
@@ -192,12 +270,15 @@ export default function AssignmentsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {assignments.map((assignment) => (
+                                {filteredAssignments.map((assignment) => (
                                     <tr key={assignment._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="text-sm font-semibold text-gray-900">{assignment.assetId?.name || '-'}</div>
                                             <div className="text-xs text-gray-500">{assignment.assetId?.brand} {assignment.assetId?.model}</div>
                                             <div className="text-xs text-gray-400 font-mono">{assignment.assetId?.serialNumber}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="text-sm text-gray-700 capitalize">{assignment.assetId?.category || '-'}</span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="text-sm font-medium text-gray-900">{assignment.userId?.name || '-'}</div>
