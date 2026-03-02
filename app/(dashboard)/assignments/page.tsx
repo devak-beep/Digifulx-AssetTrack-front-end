@@ -296,7 +296,7 @@ export default function AssignmentsPage() {
                                             <div className="text-xs text-gray-500">{assignment.userId?.email}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
                                                 assignment.status === 'active' ? 'bg-green-100 text-green-700' :
                                                 assignment.status === 'returned' ? 'bg-gray-100 text-gray-700' :
                                                 'bg-blue-100 text-blue-700'
@@ -305,7 +305,7 @@ export default function AssignmentsPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
                                                 assignment.assetId?.status === 'damage' ? 'bg-red-100 text-red-700' :
                                                 assignment.assetId?.status === 'available' ? 'bg-blue-100 text-blue-700' :
                                                 assignment.assetId?.status === 'assigned' ? 'bg-green-100 text-green-700' :
