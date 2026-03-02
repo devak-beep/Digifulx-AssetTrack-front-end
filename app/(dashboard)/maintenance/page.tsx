@@ -290,7 +290,7 @@ export default function MaintenancePage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
                                                 maintenance.status === 'completed' ? 'bg-green-100 text-green-700' :
                                                 maintenance.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                                                 maintenance.status === 'overdue' ? 'bg-red-100 text-red-700' :

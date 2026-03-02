@@ -375,7 +375,7 @@ export default function AssetsPage() {
                                             <div className="text-base text-gray-600 font-mono">{asset.serialNumber}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium capitalize ${
                                                 asset.status === 'available' ? 'bg-green-100 text-green-700' :
                                                 asset.status === 'assigned' ? 'bg-blue-100 text-blue-700' :
                                                 asset.status === 'under-repair' ? 'bg-yellow-100 text-yellow-700' :

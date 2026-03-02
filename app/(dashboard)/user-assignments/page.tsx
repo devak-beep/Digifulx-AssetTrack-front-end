@@ -61,7 +61,7 @@ export default function UserAssignmentsPage() {
                                     <td className="px-6 py-4">{assignment.assetId?.serialNumber}</td>
                                     <td className="px-6 py-4">{assignment.assetId?.category}</td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs ${
+                                        <span className={`px-2 py-1 rounded-full text-xs capitalize ${
                                             assignment.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                                         }`}>
                                             {assignment.status}

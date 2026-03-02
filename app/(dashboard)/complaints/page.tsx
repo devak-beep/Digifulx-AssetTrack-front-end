@@ -256,7 +256,7 @@ export default function ComplaintsPage() {
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(complaint.status)}`}>
+                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold capitalize ${getStatusColor(complaint.status)}`}>
                                         {complaint.status}
                                     </span>
                                 </td>
