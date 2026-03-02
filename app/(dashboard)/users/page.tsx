@@ -489,7 +489,7 @@ export default function UsersPage() {
                                 {users.map((u) => (
                                     <tr key={u._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-base font-semibold text-gray-900">{u.name}</div>
+                                            <div className="text-base font-semibold text-gray-900 capitalize">{u.name}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-base text-gray-700">{u.email}</div>
@@ -498,12 +498,12 @@ export default function UsersPage() {
                                             <div className="text-base text-gray-600">{u.mobile || '-'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 capitalize">
                                                 {u.role}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-base text-gray-600">{u.designation || '-'}</div>
+                                            <div className="text-base text-gray-600 capitalize">{u.designation || '-'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center gap-2">

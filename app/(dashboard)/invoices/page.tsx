@@ -112,11 +112,11 @@ export default function InvoicesPage() {
                                             <div className="text-base font-semibold text-gray-900">{invoice.assetId}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-base font-medium text-gray-900">{invoice.name}</div>
+                                            <div className="text-base font-medium text-gray-900 capitalize">{invoice.name}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-base text-gray-700">{invoice.brand}</div>
-                                            <div className="text-xs text-gray-500">{invoice.model}</div>
+                                            <div className="text-base text-gray-700 capitalize">{invoice.brand}</div>
+                                            <div className="text-xs text-gray-500 capitalize">{invoice.model}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-base text-gray-600 font-mono">{invoice.serialNumber}</div>

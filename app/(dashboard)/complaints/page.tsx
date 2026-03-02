@@ -10,7 +10,16 @@ export default function ComplaintsPage() {
     const [showModal, setShowModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [selectedComplaint, setSelectedComplaint] = useState<string | null>(null);
+    const [selectedStatus, setSelectedStatus] = useState<string>("");
     const [loading, setLoading] = useState(true);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [complaintToEdit, setComplaintToEdit] = useState<any>(null);
+    const [editFormData, setEditFormData] = useState({
+        title: "",
+        description: "",
+        priority: "medium"
+    });
+    const [editingComplaint, setEditingComplaint] = useState(false);
     const [formData, setFormData] = useState({
         assetId: "",
         title: "",
@@ -105,34 +114,13 @@ export default function ComplaintsPage() {
     };
 
     const updateStatus = async (id: string, status: string) => {
-        if (status === 'completed') {
-            setSelectedComplaint(id);
-            setShowConfirmModal(true);
-            return;
-        }
-
-        try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-            const res = await fetch(`${baseUrl}/complaints/${id}`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${user?.token}`
-                },
-                body: JSON.stringify({ status })
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                fetchComplaints();
-            }
-        } catch (error) {
-            console.error(error);
-        }
+        setSelectedComplaint(id);
+        setSelectedStatus(status);
+        setShowConfirmModal(true);
     };
 
-    const confirmComplete = async () => {
-        if (!selectedComplaint) return;
+    const confirmStatusChange = async () => {
+        if (!selectedComplaint || !selectedStatus) return;
 
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
@@ -142,7 +130,7 @@ export default function ComplaintsPage() {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${user?.token}`
                 },
-                body: JSON.stringify({ status: 'completed' })
+                body: JSON.stringify({ status: selectedStatus })
             });
             const data = await res.json();
             
@@ -150,9 +138,43 @@ export default function ComplaintsPage() {
                 fetchComplaints();
                 setShowConfirmModal(false);
                 setSelectedComplaint(null);
+                setSelectedStatus("");
             }
         } catch (error) {
             console.error(error);
+        }
+    };
+
+    const handleEditComplaint = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!complaintToEdit) return;
+
+        setEditingComplaint(true);
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+            const res = await fetch(`${baseUrl}/complaints/${complaintToEdit._id}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${user?.token}`
+                },
+                body: JSON.stringify(editFormData)
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                setShowEditModal(false);
+                setComplaintToEdit(null);
+                setEditFormData({ title: "", description: "", priority: "medium" });
+                fetchComplaints();
+            } else {
+                alert(data.message || 'Failed to update complaint');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error updating complaint');
+        } finally {
+            setEditingComplaint(false);
         }
     };
 
@@ -166,6 +188,15 @@ export default function ComplaintsPage() {
         return colors[status] || "bg-gray-100 text-gray-800";
     };
 
+    const getStatusLabel = (status: string) => {
+        const labels: any = {
+            acknowledged: "Acknowledge",
+            "in-progress": "Start Progress",
+            completed: "Complete"
+        };
+        return labels[status] || status;
+    };
+
     const getPriorityColor = (priority: string) => {
         const colors: any = {
             low: "bg-gray-100 text-gray-800",
@@ -176,13 +207,12 @@ export default function ComplaintsPage() {
         return colors[priority] || "bg-gray-100 text-gray-800";
     };
 
-    if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#76C043]"></div></div>;
-
-    
     const totalPages = complaints.length > 0 ? Math.ceil(complaints.length / itemsPerPage) : 1;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const currentComplaints = complaints.slice(startIndex, endIndex);
+
+    if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#76C043]"></div></div>;
 
     return (
         <div className="min-h-screen">
@@ -230,7 +260,7 @@ export default function ComplaintsPage() {
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Priority</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Created</th>
-                                    {isAdmin && <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>}
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -240,18 +270,18 @@ export default function ComplaintsPage() {
                                     <span className="font-mono text-sm font-semibold text-[#76C043]">{complaint.ticketId}</span>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className="text-sm font-medium text-gray-900">{complaint.assetId?.name || 'N/A'}</span>
+                                    <span className="text-sm font-medium text-gray-900 capitalize">{complaint.assetId?.name || 'N/A'}</span>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className="text-sm text-gray-700">{complaint.title}</span>
+                                    <span className="text-sm text-gray-700 capitalize">{complaint.title}</span>
                                 </td>
                                 {isAdmin && (
                                     <td className="px-6 py-4">
-                                        <span className="text-sm text-gray-700">{complaint.userId?.name || 'N/A'}</span>
+                                        <span className="text-sm text-gray-700 capitalize">{complaint.userId?.name || 'N/A'}</span>
                                     </td>
                                 )}
                                 <td className="px-6 py-4">
-                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(complaint.priority)}`}>
+                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold capitalize ${getPriorityColor(complaint.priority)}`}>
                                         {complaint.priority}
                                     </span>
                                 </td>
@@ -263,8 +293,26 @@ export default function ComplaintsPage() {
                                 <td className="px-6 py-4">
                                     <span className="text-sm text-gray-600">{new Date(complaint.createdAt).toLocaleDateString()}</span>
                                 </td>
-                                {isAdmin && (
-                                    <td className="px-6 py-4">
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-2">
+                                        {!isAdmin && complaint.status === 'new' && (
+                                            <button
+                                                onClick={() => {
+                                                    setComplaintToEdit(complaint);
+                                                    setEditFormData({
+                                                        title: complaint.title,
+                                                        description: complaint.description,
+                                                        priority: complaint.priority
+                                                    });
+                                                    setShowEditModal(true);
+                                                }}
+                                                className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                                            >
+                                                Edit
+                                            </button>
+                                        )}
+                                        {isAdmin && (
+                                            <>
                                         {complaint.status === 'new' && (
                                             <button
                                                 onClick={() => updateStatus(complaint._id, 'acknowledged')}
@@ -292,8 +340,10 @@ export default function ComplaintsPage() {
                                         {complaint.status === 'completed' && (
                                             <span className="text-sm text-gray-400 italic">Completed</span>
                                         )}
-                                    </td>
-                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -410,23 +460,34 @@ export default function ComplaintsPage() {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all">
                         <div className="p-6">
                             <div className="flex items-center gap-4 mb-4">
-                                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg">
+                                <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg ${
+                                    selectedStatus === 'completed' ? 'bg-gradient-to-br from-green-400 to-green-600' :
+                                    selectedStatus === 'in-progress' ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
+                                    selectedStatus === 'acknowledged' ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
+                                    'bg-gradient-to-br from-blue-400 to-blue-600'
+                                }`}>
                                     <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-gray-900">Complete Complaint</h2>
-                                    <p className="text-base text-gray-500 mt-0.5">Confirm resolution</p>
+                                    <h2 className="text-xl font-bold text-gray-900">Confirm Status Change</h2>
+                                    <p className="text-base text-gray-500 mt-0.5">Update complaint status</p>
                                 </div>
                             </div>
                             <p className="text-gray-600 mb-6 leading-relaxed">
-                                Are you sure you want to mark this complaint as completed? The asset status will be restored and this action cannot be undone.
+                                Are you sure you want to change the status to <span className="font-semibold capitalize">{getStatusLabel(selectedStatus)}</span>?
+                                {selectedStatus === 'completed' && ' The asset status will be restored and this action cannot be undone.'}
                             </p>
                             <div className="flex gap-3">
                                 <button
-                                    onClick={confirmComplete}
-                                    className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
+                                    onClick={confirmStatusChange}
+                                    className={`flex-1 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all ${
+                                        selectedStatus === 'completed' ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                                        selectedStatus === 'in-progress' ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                                        selectedStatus === 'acknowledged' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
+                                        'bg-gradient-to-r from-blue-500 to-blue-600'
+                                    }`}
                                 >
                                     Confirm
                                 </button>
@@ -434,6 +495,7 @@ export default function ComplaintsPage() {
                                     onClick={() => {
                                         setShowConfirmModal(false);
                                         setSelectedComplaint(null);
+                                        setSelectedStatus("");
                                     }}
                                     className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-all"
                                 >
@@ -441,6 +503,88 @@ export default function ComplaintsPage() {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {showEditModal && complaintToEdit && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+                        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-900">Edit Complaint</h2>
+                            <button 
+                                onClick={() => {
+                                    setShowEditModal(false);
+                                    setComplaintToEdit(null);
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleEditComplaint} className="p-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={editFormData.title}
+                                        onChange={(e) => setEditFormData({...editFormData, title: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                                    <textarea
+                                        required
+                                        value={editFormData.description}
+                                        onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                        rows={4}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Priority *</label>
+                                    <select
+                                        required
+                                        value={editFormData.priority}
+                                        onChange={(e) => setEditFormData({...editFormData, priority: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    >
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                        <option value="critical">Critical</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex gap-3 justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setComplaintToEdit(null);
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={editingComplaint}
+                                    className="px-4 py-2 bg-[#76C043] text-white rounded-lg hover:bg-[#65a83a] transition-colors disabled:opacity-50"
+                                >
+                                    {editingComplaint ? "Updating..." : "Update"}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

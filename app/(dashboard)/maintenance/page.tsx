@@ -269,8 +269,8 @@ export default function MaintenancePage() {
                                 {maintenances.map((maintenance) => (
                                     <tr key={maintenance._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4">
-                                            <div className="text-base font-semibold text-gray-900">{maintenance.assetId?.name || '-'}</div>
-                                            <div className="text-xs text-gray-500">{maintenance.assetId?.brand} {maintenance.assetId?.model}</div>
+                                            <div className="text-base font-semibold text-gray-900 capitalize">{maintenance.assetId?.name || '-'}</div>
+                                            <div className="text-xs text-gray-500 capitalize">{maintenance.assetId?.brand} {maintenance.assetId?.model}</div>
                                             <div className="text-xs text-gray-400 font-mono">{maintenance.assetId?.serialNumber}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">

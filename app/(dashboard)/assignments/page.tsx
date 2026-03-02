@@ -49,6 +49,13 @@ export default function AssignmentsPage() {
     const [error, setError] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [assignmentToEdit, setAssignmentToEdit] = useState<Assignment | null>(null);
+    const [editFormData, setEditFormData] = useState({
+        notes: "",
+        status: "active"
+    });
+    const [editingAssignment, setEditingAssignment] = useState(false);
     
     // Filter state
     const [filters, setFilters] = useState({
@@ -166,6 +173,39 @@ export default function AssignmentsPage() {
         }
     };
 
+    const handleEditAssignment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!assignmentToEdit) return;
+
+        setEditingAssignment(true);
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+            const response = await fetch(`${baseUrl}/assignments/${assignmentToEdit._id}`, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(editFormData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setShowEditModal(false);
+                setAssignmentToEdit(null);
+                setEditFormData({ notes: "", status: "active" });
+                fetchData();
+            } else {
+                alert(data.message || "Failed to update assignment");
+            }
+        } catch (err: any) {
+            alert(err.message || "An error occurred");
+        } finally {
+            setEditingAssignment(false);
+        }
+    };
+
     
     const totalPages = Math.ceil(filteredAssignments.length / 10);
     const startIndex = (currentPage - 1) * 10;
@@ -278,21 +318,22 @@ export default function AssignmentsPage() {
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assigned Date</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Returned Date</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Notes</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {currentAssignments.map((assignment) => (
                                     <tr key={assignment._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4">
-                                            <div className="text-base font-semibold text-gray-900">{assignment.assetId?.name || '-'}</div>
-                                            <div className="text-xs text-gray-500">{assignment.assetId?.brand} {assignment.assetId?.model}</div>
+                                            <div className="text-base font-semibold text-gray-900 capitalize">{assignment.assetId?.name || '-'}</div>
+                                            <div className="text-xs text-gray-500 capitalize">{assignment.assetId?.brand} {assignment.assetId?.model}</div>
                                             <div className="text-xs text-gray-400 font-mono">{assignment.assetId?.serialNumber}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="text-base text-gray-700 capitalize">{assignment.assetId?.category || '-'}</span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-base font-medium text-gray-900">{assignment.userId?.name || '-'}</div>
+                                            <div className="text-base font-medium text-gray-900 capitalize">{assignment.userId?.name || '-'}</div>
                                             <div className="text-xs text-gray-500">{assignment.userId?.email}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -328,6 +369,21 @@ export default function AssignmentsPage() {
                                             <div className="text-base text-gray-600 max-w-xs truncate">
                                                 {assignment.notes || '-'}
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <button
+                                                onClick={() => {
+                                                    setAssignmentToEdit(assignment);
+                                                    setEditFormData({
+                                                        notes: assignment.notes || "",
+                                                        status: assignment.status || "active"
+                                                    });
+                                                    setShowEditModal(true);
+                                                }}
+                                                className="px-3 py-1.5 text-xs font-medium rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                                            >
+                                                ✏️ Edit
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -480,6 +536,74 @@ export default function AssignmentsPage() {
                                     className="px-4 py-2 bg-[#76C043] text-white rounded-lg hover:bg-[#65a83a] transition-colors disabled:opacity-50"
                                 >
                                     {submitting ? "Assigning..." : "Assign"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {showEditModal && assignmentToEdit && (
+                <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+                        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-900">Edit Assignment</h2>
+                            <button 
+                                onClick={() => {
+                                    setShowEditModal(false);
+                                    setAssignmentToEdit(null);
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleEditAssignment} className="p-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <select
+                                        value={editFormData.status}
+                                        onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    >
+                                        <option value="active">Active</option>
+                                        <option value="returned">Returned</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                    <textarea
+                                        value={editFormData.notes}
+                                        onChange={(e) => setEditFormData({...editFormData, notes: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                        rows={3}
+                                        placeholder="Optional notes..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex gap-3 justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setAssignmentToEdit(null);
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={editingAssignment}
+                                    className="px-4 py-2 bg-[#76C043] text-white rounded-lg hover:bg-[#65a83a] transition-colors disabled:opacity-50"
+                                >
+                                    {editingAssignment ? "Updating..." : "Update"}
                                 </button>
                             </div>
                         </form>

@@ -35,6 +35,19 @@ export default function AssetsPage() {
     const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [assignmentInfo, setAssignmentInfo] = useState<any>(null);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [assetToEdit, setAssetToEdit] = useState<Asset | null>(null);
+    const [editFormData, setEditFormData] = useState({
+        name: "",
+        brand: "",
+        model: "",
+        serialNumber: "",
+        category: "",
+        status: "available",
+        location: "",
+        purchaseCost: ""
+    });
+    const [editingAsset, setEditingAsset] = useState(false);
     
     // Filter state
     const [filters, setFilters] = useState({
@@ -231,6 +244,57 @@ export default function AssetsPage() {
         }
     };
 
+    const handleEditAsset = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!assetToEdit) return;
+
+        setEditingAsset(true);
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+            const response = await fetch(`${baseUrl}/assets/${assetToEdit._id}`, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    name: editFormData.name,
+                    brand: editFormData.brand,
+                    model: editFormData.model,
+                    serialNumber: editFormData.serialNumber,
+                    category: editFormData.category,
+                    status: editFormData.status,
+                    location: editFormData.location,
+                    purchaseCost: parseFloat(editFormData.purchaseCost) || 0
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setShowEditModal(false);
+                setAssetToEdit(null);
+                setEditFormData({
+                    name: "",
+                    brand: "",
+                    model: "",
+                    serialNumber: "",
+                    category: "",
+                    status: "available",
+                    location: "",
+                    purchaseCost: ""
+                });
+                fetchAssets();
+            } else {
+                alert(data.message || "Failed to update asset");
+            }
+        } catch (err: any) {
+            alert(err.message || "An error occurred");
+        } finally {
+            setEditingAsset(false);
+        }
+    };
+
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
             {/* Header */}
@@ -363,10 +427,10 @@ export default function AssetsPage() {
                                 {currentAssets.map((asset) => (
                                     <tr key={asset._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-base font-semibold text-gray-900">{asset.brand}</div>
+                                            <div className="text-base font-semibold text-gray-900 capitalize">{asset.brand}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-base text-gray-700">{asset.model}</div>
+                                            <div className="text-base text-gray-700 capitalize">{asset.model}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-base text-gray-700 capitalize">{asset.category}</div>
@@ -387,7 +451,7 @@ export default function AssetsPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-600">{asset.location || '-'}</div>
+                                            <div className="text-sm text-gray-600 capitalize">{asset.location || '-'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-gray-900">₹{asset.purchaseCost?.toLocaleString('en-IN') || '-'}</div>
@@ -415,8 +479,18 @@ export default function AssetsPage() {
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => {
-                                                            // TODO: Implement edit functionality
-                                                            alert("Edit functionality coming soon");
+                                                            setAssetToEdit(asset);
+                                                            setEditFormData({
+                                                                name: asset.name || "",
+                                                                brand: asset.brand || "",
+                                                                model: asset.model || "",
+                                                                serialNumber: asset.serialNumber || "",
+                                                                category: asset.category || "",
+                                                                status: asset.status || "available",
+                                                                location: asset.location || "",
+                                                                purchaseCost: asset.purchaseCost?.toString() || ""
+                                                            });
+                                                            setShowEditModal(true);
                                                         }}
                                                         className="px-3 py-1.5 text-xs font-medium rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
                                                         title="Edit Asset"
@@ -688,6 +762,137 @@ export default function AssetsPage() {
                                     className="px-4 py-2 bg-[#76C043] text-white rounded-lg hover:bg-[#65a83a] transition-colors disabled:opacity-50"
                                 >
                                     {submitting ? "Creating..." : "Create Asset"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {showEditModal && assetToEdit && (
+                <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-900">Edit Asset</h2>
+                            <button 
+                                onClick={() => {
+                                    setShowEditModal(false);
+                                    setAssetToEdit(null);
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleEditAsset} className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.name}
+                                        onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.brand}
+                                        onChange={(e) => setEditFormData({...editFormData, brand: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.model}
+                                        onChange={(e) => setEditFormData({...editFormData, model: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Serial Number</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.serialNumber}
+                                        onChange={(e) => setEditFormData({...editFormData, serialNumber: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.category}
+                                        onChange={(e) => setEditFormData({...editFormData, category: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <select
+                                        value={editFormData.status}
+                                        onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    >
+                                        <option value="available">Available</option>
+                                        <option value="assigned">Assigned</option>
+                                        <option value="under-repair">Under Repair</option>
+                                        <option value="damaged">Damaged</option>
+                                        <option value="retired">Retired</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.location}
+                                        onChange={(e) => setEditFormData({...editFormData, location: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Purchase Cost</label>
+                                    <input
+                                        type="number"
+                                        value={editFormData.purchaseCost}
+                                        onChange={(e) => setEditFormData({...editFormData, purchaseCost: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                        step="0.01"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex gap-3 justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setAssetToEdit(null);
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={editingAsset}
+                                    className="px-4 py-2 bg-[#76C043] text-white rounded-lg hover:bg-[#65a83a] transition-colors disabled:opacity-50"
+                                >
+                                    {editingAsset ? "Updating..." : "Update Asset"}
                                 </button>
                             </div>
                         </form>

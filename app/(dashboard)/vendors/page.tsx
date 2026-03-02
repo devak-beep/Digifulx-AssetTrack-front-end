@@ -246,26 +246,26 @@ export default function VendorsPage() {
                                 {vendors.map((vendor) => (
                                     <tr key={vendor._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-base font-semibold text-gray-900">{vendor.name}</div>
+                                            <div className="text-base font-semibold text-gray-900 capitalize">{vendor.name}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-base text-gray-700">{vendor.company}</div>
+                                            <div className="text-base text-gray-700 capitalize">{vendor.company}</div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="text-base text-gray-600">
                                                 {vendor.contacts.map((contact, idx) => (
                                                     <div key={idx} className="mb-1">
-                                                        <span className="font-medium">{contact.name}</span>
+                                                        <span className="font-medium capitalize">{contact.name}</span>
                                                         <span className="text-gray-500"> - {contact.mobile}</span>
                                                     </div>
                                                 ))}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-base text-gray-600">{vendor.city}</div>
+                                            <div className="text-base text-gray-600 capitalize">{vendor.city}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 capitalize">
                                                 {vendor.type}
                                             </span>
                                         </td>

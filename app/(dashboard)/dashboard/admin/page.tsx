@@ -3,6 +3,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 export default function AdminDashboard() {
     const { user } = useAuth();
@@ -15,6 +16,9 @@ export default function AdminDashboard() {
         availableAssets: 0,
         damagedAssets: 0
     });
+    const [categoryData, setCategoryData] = useState<any[]>([]);
+    const [assignmentData, setAssignmentData] = useState<any[]>([]);
+    const [maintenanceData, setMaintenanceData] = useState<any[]>([]);
     const [recentActivity, setRecentActivity] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -26,23 +30,26 @@ export default function AdminDashboard() {
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
             
-            const [assetsRes, usersRes, assignmentsRes, complaintsRes] = await Promise.all([
+            const [assetsRes, usersRes, assignmentsRes, complaintsRes, maintenanceRes] = await Promise.all([
                 fetch(`${baseUrl}/assets`, { headers: { Authorization: `Bearer ${user?.token}` } }),
                 fetch(`${baseUrl}/users`, { headers: { Authorization: `Bearer ${user?.token}` } }),
                 fetch(`${baseUrl}/assignments`, { headers: { Authorization: `Bearer ${user?.token}` } }),
-                fetch(`${baseUrl}/complaints`, { headers: { Authorization: `Bearer ${user?.token}` } })
+                fetch(`${baseUrl}/complaints`, { headers: { Authorization: `Bearer ${user?.token}` } }),
+                fetch(`${baseUrl}/maintenance`, { headers: { Authorization: `Bearer ${user?.token}` } })
             ]);
 
             const assets = await assetsRes.json();
             const users = await usersRes.json();
             const assignments = await assignmentsRes.json();
             const complaints = await complaintsRes.json();
+            const maintenance = await maintenanceRes.json();
 
             if (assets.success && users.success && assignments.success && complaints.success) {
                 const assetsList = assets.data.assets || [];
                 const assignmentsList = Array.isArray(assignments.data) ? assignments.data : (assignments.data?.data || []);
                 const complaintsList = Array.isArray(complaints.data) ? complaints.data : (complaints.data?.data || []);
                 const usersList = Array.isArray(users.data) ? users.data : (users.data?.data || []);
+                const maintenanceList = Array.isArray(maintenance.data) ? maintenance.data : (maintenance.data?.data || []);
                 
                 setStats({
                     totalAssets: assetsList.length,
@@ -52,6 +59,41 @@ export default function AdminDashboard() {
                     availableAssets: assetsList.filter((a: any) => a.status === 'available').length,
                     damagedAssets: assetsList.filter((a: any) => a.status === 'damage').length
                 });
+
+                // Product distribution data (by product name)
+                const productCount: any = {};
+                assetsList.forEach((asset: any) => {
+                    const product = (asset.name || `${asset.brand} ${asset.model}`).trim();
+                    productCount[product] = (productCount[product] || 0) + 1;
+                });
+                console.log('Product Count:', productCount);
+                console.log('Total Assets:', assetsList.length);
+                console.log('Sample Assets:', assetsList.slice(0, 5).map((a: any) => ({ name: a.name, brand: a.brand, model: a.model })));
+                const productChartData = Object.entries(productCount)
+                    .map(([name, count]) => ({ name, count }))
+                    .sort((a: any, b: any) => b.count - a.count)
+                    .slice(0, 8); // Show top 8 products
+                setCategoryData(productChartData);
+
+                // Assignment data for pie chart
+                const assigned = assignmentsList.filter((a: any) => a.status === 'active').length;
+                const available = assetsList.filter((a: any) => a.status === 'available').length;
+                setAssignmentData([
+                    { name: 'Assigned', value: assigned },
+                    { name: 'Available', value: available }
+                ]);
+
+                // Maintenance cost data (last 12 months)
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const costByMonth: any = {};
+                maintenanceList.forEach((m: any) => {
+                    if (m.cost && m.lastMaintenanceDate) {
+                        const month = new Date(m.lastMaintenanceDate).getMonth();
+                        const monthName = monthNames[month];
+                        costByMonth[monthName] = (costByMonth[monthName] || 0) + (m.cost || 0);
+                    }
+                });
+                setMaintenanceData(monthNames.map(month => ({ month, cost: costByMonth[month] || 0 })));
 
                 // Recent activity
                 const recent = [
@@ -178,6 +220,67 @@ export default function AdminDashboard() {
                     <p className="text-sm text-white/90 mt-1">Asset Utilization</p>
                     <div className="mt-3 flex items-center text-xs text-white/80">
                         <span>Assets in use</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Asset Insights - Charts Section */}
+            <div className="space-y-4">
+                <h2 className="text-2xl font-bold text-gray-900">Asset Insights</h2>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Product Distribution */}
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">Product Distribution</h3>
+                        <p className="text-sm text-gray-600 mb-4">Top products in inventory</p>
+                        <ResponsiveContainer width="100%" height={250}>
+                            <BarChart data={categoryData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-45} textAnchor="end" height={100} />
+                                <YAxis tick={{ fontSize: 12 }} />
+                                <Tooltip />
+                                <Bar dataKey="count" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    {/* Assigned vs Available Assets */}
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">Assigned vs. Available Assets</h3>
+                        <p className="text-sm text-gray-600 mb-4">Current status of asset assignment</p>
+                        <ResponsiveContainer width="100%" height={250}>
+                            <PieChart>
+                                <Pie
+                                    data={assignmentData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={90}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    <Cell fill="#3b82f6" />
+                                    <Cell fill="#6b7280" />
+                                </Pie>
+                                <Tooltip />
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    {/* Monthly Maintenance Cost */}
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">Monthly Maintenance Cost</h3>
+                        <p className="text-sm text-gray-600 mb-4">Total cost of maintenance activities over time</p>
+                        <ResponsiveContainer width="100%" height={250}>
+                            <LineChart data={maintenanceData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                                <YAxis tick={{ fontSize: 12 }} />
+                                <Tooltip />
+                                <Line type="monotone" dataKey="cost" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 4 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
             </div>

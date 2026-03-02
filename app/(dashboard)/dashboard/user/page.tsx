@@ -29,8 +29,14 @@ export default function UserDashboard() {
             const assignData = await assignRes.json();
             const complaintData = await complaintRes.json();
 
-            if (assignData.success) setAssignments(assignData.data.filter((a: any) => a.assetId && a.status === 'active'));
-            if (complaintData.success) setComplaints(complaintData.data);
+            if (assignData.success) {
+                const assignmentsArray = assignData.data?.data || assignData.data || [];
+                setAssignments(Array.isArray(assignmentsArray) ? assignmentsArray.filter((a: any) => a.assetId && a.status === 'active') : []);
+            }
+            if (complaintData.success) {
+                const complaintsArray = complaintData.data?.data || complaintData.data || [];
+                setComplaints(Array.isArray(complaintsArray) ? complaintsArray : []);
+            }
         } catch (error) {
             console.error(error);
         } finally {
