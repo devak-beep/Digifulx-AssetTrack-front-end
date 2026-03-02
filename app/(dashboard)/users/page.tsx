@@ -51,6 +51,10 @@ export default function UsersPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [emailError, setEmailError] = useState("");
     const [passwordError, setPasswordError] = useState("");
+    const [showEditRoleModal, setShowEditRoleModal] = useState(false);
+    const [selectedUserForEdit, setSelectedUserForEdit] = useState<User | null>(null);
+    const [editRoleForm, setEditRoleForm] = useState({ role: "", designation: "" });
+    const [editingRole, setEditingRole] = useState(false);
     
     const [formData, setFormData] = useState({
         name: "",
@@ -291,9 +295,51 @@ export default function UsersPage() {
         setOpenDropdown(null);
     };
 
-    
+    const handleEditRoleClick = (selectedUser: User) => {
+        setSelectedUserForEdit(selectedUser);
+        setEditRoleForm({ role: selectedUser.role, designation: selectedUser.designation || "" });
+        setShowEditRoleModal(true);
+        setOpenDropdown(null);
+    };
 
-    const totalPages = filteredAssets.length > 0 ? Math.ceil(filteredAssets.length / itemsPerPage) : 1;
+    const handleUpdateRole = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedUserForEdit) return;
+
+        setEditingRole(true);
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+            const response = await fetch(`${baseUrl}/users/${selectedUserForEdit._id}`, {
+                method: "PATCH",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    role: editRoleForm.role,
+                    designation: editRoleForm.designation
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setSuccessMessage("User role and designation updated successfully!");
+                setShowEditRoleModal(false);
+                setSelectedUserForEdit(null);
+                fetchUsers();
+                setTimeout(() => setSuccessMessage(""), 3000);
+            } else {
+                alert(data.message || "Failed to update user");
+            }
+        } catch (err: any) {
+            alert(err.message || "An error occurred");
+        } finally {
+            setEditingRole(false);
+        }
+    };
+
+    
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const currentItems = filteredAssets.slice(startIndex, endIndex);
@@ -416,6 +462,14 @@ export default function UsersPage() {
                                                             >
                                                                 Edit
                                                             </button>
+                                                            {user?.role === "Admin" || user?.role === "Superadmin" ? (
+                                                                <button
+                                                                    onClick={() => handleEditRoleClick(u)}
+                                                                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-purple-600 rounded-lg"
+                                                                >
+                                                                    Change Role
+                                                                </button>
+                                                            ) : null}
                                                             <button
                                                                 onClick={() => handleDeleteClick(u._id)}
                                                                 className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-red-600 rounded-lg"
@@ -798,6 +852,74 @@ export default function UsersPage() {
                                 Confirm
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {showEditRoleModal && selectedUserForEdit && (
+                <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+                        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-900">Change Role & Designation</h2>
+                            <button
+                                onClick={() => setShowEditRoleModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUpdateRole} className="p-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">User: {selectedUserForEdit.name}</label>
+                                    <p className="text-xs text-gray-500">{selectedUserForEdit.email}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                                    <select
+                                        required
+                                        value={editRoleForm.role}
+                                        onChange={(e) => setEditRoleForm({...editRoleForm, role: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                                    >
+                                        <option value="user">User</option>
+                                        <option value="manager">Manager</option>
+                                        <option value="hr">HR</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
+                                    <input
+                                        type="text"
+                                        value={editRoleForm.designation}
+                                        onChange={(e) => setEditRoleForm({...editRoleForm, designation: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                                        placeholder="e.g., Senior Manager"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex gap-3 justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditRoleModal(false)}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={editingRole}
+                                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                                >
+                                    {editingRole ? "Updating..." : "Update"}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
