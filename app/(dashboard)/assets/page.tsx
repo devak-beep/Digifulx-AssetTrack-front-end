@@ -418,19 +418,16 @@ export default function AssetsPage() {
                                                         // Fetch assignment info
                                                         try {
                                                             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-                                                            const res = await fetch(`${baseUrl}/assignments?assetId=${asset._id}`, {
+                                                            const res = await fetch(`${baseUrl}/assignments/asset/${asset._id}`, {
                                                                 headers: { "Authorization": `Bearer ${token}` }
                                                             });
                                                             const data = await res.json();
-                                                            if (data.success && data.data.data && data.data.data.length > 0) {
-                                                                const active = data.data.data.find((a: any) => a.status === 'active');
-                                                                if (active) {
-                                                                    setAssignmentInfo({
-                                                                        assignmentId: active._id,
-                                                                        userName: active.userId?.name,
-                                                                        userEmail: active.userId?.email
-                                                                    });
-                                                                }
+                                                            if (data.success && data.data) {
+                                                                setAssignmentInfo({
+                                                                    assignmentId: data.data._id,
+                                                                    userName: data.data.userId?.name,
+                                                                    userEmail: data.data.userId?.email
+                                                                });
                                                             }
                                                         } catch (err) {
                                                             console.error(err);
