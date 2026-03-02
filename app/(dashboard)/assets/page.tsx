@@ -34,6 +34,7 @@ export default function AssetsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [assignmentInfo, setAssignmentInfo] = useState<any>(null);
     
     // Filter state
     const [filters, setFilters] = useState({
@@ -192,6 +193,20 @@ export default function AssetsPage() {
         setDeleting(true);
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+            
+            // If asset is assigned, deassign it first
+            if (assignmentInfo?.assignmentId) {
+                await fetch(`${baseUrl}/assignments/${assignmentInfo.assignmentId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ status: "returned", returnedDate: new Date() })
+                });
+            }
+
+            // Delete the asset
             const response = await fetch(`${baseUrl}/assets/${assetToDelete._id}`, {
                 method: "DELETE",
                 headers: {
@@ -204,6 +219,7 @@ export default function AssetsPage() {
             if (data.success) {
                 setShowDeleteModal(false);
                 setAssetToDelete(null);
+                setAssignmentInfo(null);
                 fetchAssets();
             } else {
                 alert(data.message || "Failed to delete asset");
@@ -397,8 +413,28 @@ export default function AssetsPage() {
                                         {(user?.role === "Admin" || user?.role === "Superadmin") && (
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <button
-                                                    onClick={() => {
+                                                    onClick={async () => {
                                                         setAssetToDelete(asset);
+                                                        // Fetch assignment info
+                                                        try {
+                                                            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+                                                            const res = await fetch(`${baseUrl}/assignments?assetId=${asset._id}`, {
+                                                                headers: { "Authorization": `Bearer ${token}` }
+                                                            });
+                                                            const data = await res.json();
+                                                            if (data.success && data.data.data && data.data.data.length > 0) {
+                                                                const active = data.data.data.find((a: any) => a.status === 'active');
+                                                                if (active) {
+                                                                    setAssignmentInfo({
+                                                                        assignmentId: active._id,
+                                                                        userName: active.userId?.name,
+                                                                        userEmail: active.userId?.email
+                                                                    });
+                                                                }
+                                                            }
+                                                        } catch (err) {
+                                                            console.error(err);
+                                                        }
                                                         setShowDeleteModal(true);
                                                     }}
                                                     className="px-3 py-1.5 text-xs font-medium rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
@@ -408,7 +444,6 @@ export default function AssetsPage() {
                                                 </button>
                                             </td>
                                         )}
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -659,12 +694,22 @@ export default function AssetsPage() {
 
                         <div className="p-6">
                             <p className="text-gray-700 mb-4">Are you sure you want to delete this asset?</p>
-                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
                                 <p className="text-sm"><span className="font-medium">Brand:</span> {assetToDelete.brand}</p>
                                 <p className="text-sm"><span className="font-medium">Model:</span> {assetToDelete.model}</p>
                                 <p className="text-sm"><span className="font-medium">Serial:</span> {assetToDelete.serialNumber}</p>
                             </div>
-                            <p className="text-sm text-red-600 mt-4">⚠️ This action cannot be undone.</p>
+                            
+                            {assignmentInfo && (
+                                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4">
+                                    <p className="text-sm text-orange-800 font-medium mb-2">⚠️ This asset is currently assigned</p>
+                                    <p className="text-sm text-orange-700"><span className="font-medium">Assigned to:</span> {assignmentInfo.userName}</p>
+                                    <p className="text-sm text-orange-700"><span className="font-medium">Email:</span> {assignmentInfo.userEmail}</p>
+                                    <p className="text-sm text-orange-700 mt-2">Deleting this asset will automatically deassign it from the user.</p>
+                                </div>
+                            )}
+                            
+                            <p className="text-sm text-red-600">⚠️ This action cannot be undone.</p>
                         </div>
 
                         <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3 justify-end">
@@ -672,6 +717,7 @@ export default function AssetsPage() {
                                 onClick={() => {
                                     setShowDeleteModal(false);
                                     setAssetToDelete(null);
+                                    setAssignmentInfo(null);
                                 }}
                                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
                             >
@@ -687,7 +733,6 @@ export default function AssetsPage() {
                         </div>
                     </div>
                 </div>
-            )}
             )}
         </div>
     );
