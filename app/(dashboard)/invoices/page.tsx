@@ -20,6 +20,8 @@ export default function InvoicesPage() {
     const { token } = useAuth();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         fetchInvoices();
@@ -54,6 +56,12 @@ export default function InvoicesPage() {
         }
     };
 
+    
+    const totalPages = invoices.length > 0 ? Math.ceil(invoices.length / itemsPerPage) : 1;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentInvoices = invoices.slice(startIndex, endIndex);
+
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
             <div className="mb-8">
@@ -74,12 +82,12 @@ export default function InvoicesPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <h3 className="mt-4 text-lg font-medium text-gray-900">No invoices found</h3>
-                    <p className="mt-2 text-sm text-gray-500">Invoices will appear here when assets are created with invoice uploads.</p>
+                    <p className="mt-2 text-base text-gray-500">Invoices will appear here when assets are created with invoice uploads.</p>
                 </div>
             ) : (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-base text-gray-600">
                             Total <span className="font-medium text-gray-900">{invoices.length}</span> invoices
                         </p>
                     </div>
@@ -98,28 +106,28 @@ export default function InvoicesPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {invoices.map((invoice) => (
+                                {currentInvoices.map((invoice) => (
                                     <tr key={invoice._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-semibold text-gray-900">{invoice.assetId}</div>
+                                            <div className="text-base font-semibold text-gray-900">{invoice.assetId}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-sm font-medium text-gray-900">{invoice.name}</div>
+                                            <div className="text-base font-medium text-gray-900">{invoice.name}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-sm text-gray-700">{invoice.brand}</div>
+                                            <div className="text-base text-gray-700">{invoice.brand}</div>
                                             <div className="text-xs text-gray-500">{invoice.model}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-600 font-mono">{invoice.serialNumber}</div>
+                                            <div className="text-base text-gray-600 font-mono">{invoice.serialNumber}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-700">
+                                            <div className="text-base text-gray-700">
                                                 {invoice.purchaseDate ? new Date(invoice.purchaseDate).toLocaleDateString('en-IN') : '-'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900">
+                                            <div className="text-base font-medium text-gray-900">
                                                 ₹{invoice.purchaseCost?.toLocaleString('en-IN') || '0'}
                                             </div>
                                         </td>
@@ -141,7 +149,31 @@ export default function InvoicesPage() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    
+                        {/* Pagination */}
+                        <div className="mt-6 flex items-center justify-between px-6 py-4 bg-gray-50 border-t">
+                            <div className="text-sm text-gray-700">
+                                Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, invoices.length)}</span> of <span className="font-semibold">{invoices.length}</span> items
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                    Previous
+                                </button>
+                                <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+</div>
                 </div>
             )}
         </div>

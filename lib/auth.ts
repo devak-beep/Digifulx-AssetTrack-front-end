@@ -1,4 +1,4 @@
-export type Role = "Superadmin" | "Admin" | "Manager" | "HR" | "Staff";
+export type Role = "Superadmin" | "Admin" | "Manager" | "HR" | "Staff" | "User";
 
 export interface User {
     id: string;
@@ -15,6 +15,7 @@ export const ROLE_ROUTES: Record<Role, string> = {
     Manager: "/dashboard/manager",
     HR: "/dashboard/hr",
     Staff: "/dashboard/staff",
+    User: "/dashboard/user",
 };
 
 /**
@@ -26,5 +27,6 @@ export function normalizeRole(role: string): Role {
     if (r === "admin") return "Admin";
     if (r === "manager") return "Manager";
     if (r === "hr") return "HR";
-    return "Staff"; // Default or fallback
+    if (r === "staff") return "Staff";
+    return "User";
 }

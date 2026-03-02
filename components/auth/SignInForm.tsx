@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import Logo from "@/components/Logo";
 import { useAuth } from "@/context/AuthContext";
 import { ROLE_ROUTES } from "@/lib/auth";
 
@@ -43,15 +44,8 @@ export default function SignInForm() {
         <div className="w-full max-w-sm bg-white rounded-xl shadow-md border border-gray-100 px-8 py-8">
             {/* Header */}
             <div className="text-center mb-6">
-                <div
-                    className="mx-auto mb-3 w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: "var(--brand-light)" }}
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
-                        <polyline points="10 17 15 12 10 7" />
-                        <line x1="15" y1="12" x2="3" y2="12" />
-                    </svg>
+                <div className="flex justify-center mb-4">
+                    <Logo size="lg" />
                 </div>
                 <h2 className="text-xl font-bold text-gray-900">Welcome!</h2>
                 <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>

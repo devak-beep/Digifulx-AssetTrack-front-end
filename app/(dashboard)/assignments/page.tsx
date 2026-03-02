@@ -63,6 +63,8 @@ export default function AssignmentsPage() {
         userId: "",
         notes: ""
     });
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         fetchData();
@@ -111,7 +113,8 @@ export default function AssignmentsPage() {
 
             if (assignmentsData.success) {
                 console.log('Assignments data:', assignmentsData.data);
-                setAssignments(assignmentsData.data || []);
+                const data = assignmentsData.data?.data || assignmentsData.data || [];
+                setAssignments(Array.isArray(data) ? data : []);
             }
             if (assetsData.success) {
                 const availableAssets = assetsData.data.assets?.filter((a: Asset) => a.status === 'available') || [];
@@ -122,7 +125,8 @@ export default function AssignmentsPage() {
                 setCategories(uniqueCategories);
             }
             if (usersData.success) {
-                setUsers(usersData.data || []);
+                const userData = usersData.data?.data || usersData.data || [];
+                setUsers(Array.isArray(userData) ? userData : []);
             }
         } catch (err: any) {
             setError(err.message || "An error occurred");
@@ -162,6 +166,12 @@ export default function AssignmentsPage() {
         }
     };
 
+    
+    const totalPages = Math.ceil(filteredAssignments.length / 10);
+    const startIndex = (currentPage - 1) * 10;
+    const endIndex = startIndex + 10;
+    const currentAssignments = filteredAssignments.slice(startIndex, endIndex);
+
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
             <div className="mb-8">
@@ -186,13 +196,13 @@ export default function AssignmentsPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                     <h3 className="mt-4 text-lg font-medium text-gray-900">No assignments found</h3>
-                    <p className="mt-2 text-sm text-gray-500">No assets have been assigned yet.</p>
+                    <p className="mt-2 text-base text-gray-500">No assets have been assigned yet.</p>
                 </div>
             ) : (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-600">
+                            <p className="text-base text-gray-600">
                                 Showing <span className="font-medium text-gray-900">{filteredAssignments.length}</span> of {assignments.length} assignments
                             </p>
                             <button 
@@ -263,25 +273,26 @@ export default function AssignmentsPage() {
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Asset</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assigned To</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assignment Status</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Asset Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assigned Date</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Returned Date</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Notes</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredAssignments.map((assignment) => (
+                                {currentAssignments.map((assignment) => (
                                     <tr key={assignment._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4">
-                                            <div className="text-sm font-semibold text-gray-900">{assignment.assetId?.name || '-'}</div>
+                                            <div className="text-base font-semibold text-gray-900">{assignment.assetId?.name || '-'}</div>
                                             <div className="text-xs text-gray-500">{assignment.assetId?.brand} {assignment.assetId?.model}</div>
                                             <div className="text-xs text-gray-400 font-mono">{assignment.assetId?.serialNumber}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-gray-700 capitalize">{assignment.assetId?.category || '-'}</span>
+                                            <span className="text-base text-gray-700 capitalize">{assignment.assetId?.category || '-'}</span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-sm font-medium text-gray-900">{assignment.userId?.name || '-'}</div>
+                                            <div className="text-base font-medium text-gray-900">{assignment.userId?.name || '-'}</div>
                                             <div className="text-xs text-gray-500">{assignment.userId?.email}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -294,17 +305,27 @@ export default function AssignmentsPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-600">
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                                                assignment.assetId?.status === 'damage' ? 'bg-red-100 text-red-700' :
+                                                assignment.assetId?.status === 'available' ? 'bg-blue-100 text-blue-700' :
+                                                assignment.assetId?.status === 'assigned' ? 'bg-green-100 text-green-700' :
+                                                'bg-gray-100 text-gray-700'
+                                            }`}>
+                                                {assignment.assetId?.status || 'N/A'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-base text-gray-600">
                                                 {new Date(assignment.assignedDate).toLocaleDateString('en-GB')}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-600">
+                                            <div className="text-base text-gray-600">
                                                 {assignment.returnedDate ? new Date(assignment.returnedDate).toLocaleDateString('en-GB') : '-'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-sm text-gray-600 max-w-xs truncate">
+                                            <div className="text-base text-gray-600 max-w-xs truncate">
                                                 {assignment.notes || '-'}
                                             </div>
                                         </td>
@@ -312,7 +333,55 @@ export default function AssignmentsPage() {
                                 ))}
                             </tbody>
                         </table>
+                    
+                    {/* Pagination */}
+                    <div className="mt-6 flex items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-200">
+                        <div className="text-sm text-gray-700">
+                            Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, filteredAssignments.length)}</span> of <span className="font-semibold">{filteredAssignments.length}</span> assignments
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            
+                            <div className="flex items-center gap-1">
+                                {[...Array(totalPages)].map((_, i) => {
+                                    const page = i + 1;
+                                    if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                                        return (
+                                            <button
+                                                key={page}
+                                                onClick={() => setCurrentPage(page)}
+                                                className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                                                    currentPage === page
+                                                        ? 'bg-[#76C043] text-white'
+                                                        : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {page}
+                                            </button>
+                                        );
+                                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                                        return <span key={page} className="px-2 text-gray-500">...</span>;
+                                    }
+                                    return null;
+                                })}
+                            </div>
+
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
                     </div>
+</div>
                 </div>
             )}
 

@@ -36,6 +36,8 @@ export default function UsersPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [assets, setAssets] = useState<Asset[]>([]);
     const [categories, setCategories] = useState<string[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     const [filteredAssets, setFilteredAssets] = useState<Asset[]>([]);
     const [selectedAssets, setSelectedAssets] = useState<SelectedAsset[]>([]);
     const [loading, setLoading] = useState(true);
@@ -44,6 +46,7 @@ export default function UsersPage() {
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [userToDelete, setUserToDelete] = useState<string | null>(null);
+    const [editingUserId, setEditingUserId] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string>("");
     const [showPassword, setShowPassword] = useState(false);
     const [emailError, setEmailError] = useState("");
@@ -96,7 +99,8 @@ export default function UsersPage() {
             const data = await response.json();
 
             if (data.success) {
-                setUsers(data.data || []);
+                const userData = data.data?.data || data.data || [];
+                setUsers(Array.isArray(userData) ? userData : []);
             }
         } catch (err) {
             console.error(err);
@@ -174,50 +178,80 @@ export default function UsersPage() {
 
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-            const assetIds = selectedAssets.map(a => a.assetId);
             
-            const response = await fetch(`${baseUrl}/users/with-assignment`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    userData: formData,
-                    assetIds: assetIds,
-                    notes: formData.assignmentNotes
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setShowModal(false);
-                setFormData({
-                    name: "",
-                    email: "",
-                    password: "",
-                    role: "user",
-                    mobile: "+91",
-                    designation: "",
-                    assignmentNotes: ""
+            if (editingUserId) {
+                // Edit mode - update existing user
+                const response = await fetch(`${baseUrl}/users/${editingUserId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(formData)
                 });
-                const assignedCount = selectedAssets.length;
-                setSelectedAssets([]);
-                setAssetSelection({ category: "", assetId: "" });
                 
-                // Show success message
-                if (assignedCount > 0) {
-                    setSuccessMessage(`User created successfully and ${assignedCount} device${assignedCount > 1 ? 's' : ''} assigned!`);
-                } else {
-                    setSuccessMessage('User created successfully!');
+                const data = await response.json();
+                if (data.success) {
+                    setShowModal(false);
+                    setEditingUserId(null);
+                    setFormData({
+                        name: "",
+                        email: "",
+                        password: "",
+                        role: "user",
+                        mobile: "+91",
+                        designation: "",
+                        assignmentNotes: ""
+                    });
+                    setSuccessMessage("User updated successfully!");
+                    fetchUsers();
+                    setTimeout(() => setSuccessMessage(""), 3000);
                 }
-                setTimeout(() => setSuccessMessage(""), 5000);
-                
-                fetchUsers();
-                fetchAssets();
             } else {
-                alert(data.message || "Failed to create user");
+                // Create mode
+                const assetIds = selectedAssets.map(a => a.assetId);
+                
+                const response = await fetch(`${baseUrl}/users/with-assignment`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        userData: formData,
+                        assetIds: assetIds,
+                        notes: formData.assignmentNotes
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    setShowModal(false);
+                    setFormData({
+                        name: "",
+                        email: "",
+                        password: "",
+                        role: "user",
+                        mobile: "+91",
+                        designation: "",
+                        assignmentNotes: ""
+                    });
+                    setSelectedAssets([]);
+                    const assignedCount = selectedAssets.length;
+                    // Show success message
+                    if (assignedCount > 0) {
+                        setSuccessMessage(`User created successfully and ${assignedCount} device${assignedCount > 1 ? 's' : ''} assigned!`);
+                    } else {
+                        setSuccessMessage('User created successfully!');
+                    }
+                    setTimeout(() => setSuccessMessage(""), 5000);
+                    
+                    fetchUsers();
+                    fetchAssets();
+                } else {
+                    alert(data.message || "Failed to create user");
+                }
             }
         } catch (err: any) {
             console.error('Error creating user:', err);
@@ -257,6 +291,13 @@ export default function UsersPage() {
         setOpenDropdown(null);
     };
 
+    
+
+    const totalPages = filteredAssets.length > 0 ? Math.ceil(filteredAssets.length / itemsPerPage) : 1;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentItems = filteredAssets.slice(startIndex, endIndex);
+
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
             {/* Success Message */}
@@ -293,11 +334,24 @@ export default function UsersPage() {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-600">
+                            <p className="text-base text-gray-600">
                                 Total <span className="font-medium text-gray-900">{users.length}</span> users
                             </p>
                             <button 
-                                onClick={() => setShowModal(true)}
+                                onClick={() => {
+                    setShowModal(true);
+                    setEditingUserId(null);
+                    setFormData({
+                        name: "",
+                        email: "",
+                        password: "",
+                        role: "user",
+                        mobile: "+91",
+                        designation: "",
+                        assignmentNotes: ""
+                    });
+                    setSelectedAssets([]);
+                }}
                                 className="px-4 py-2 bg-[#76C043] text-white text-sm font-medium rounded-lg hover:bg-[#65a83a] transition-colors"
                             >
                                 + Create Account
@@ -321,13 +375,13 @@ export default function UsersPage() {
                                 {users.map((u) => (
                                     <tr key={u._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-semibold text-gray-900">{u.name}</div>
+                                            <div className="text-base font-semibold text-gray-900">{u.name}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-700">{u.email}</div>
+                                            <div className="text-base text-gray-700">{u.email}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-600">{u.mobile || '-'}</div>
+                                            <div className="text-base text-gray-600">{u.mobile || '-'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
@@ -335,7 +389,7 @@ export default function UsersPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-600">{u.designation || '-'}</div>
+                                            <div className="text-base text-gray-600">{u.designation || '-'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="relative">
@@ -353,6 +407,16 @@ export default function UsersPage() {
                                                         />
                                                         <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
                                                             <button
+                                                                onClick={() => {
+                                                                    setEditingUserId(u._id);
+                                                                    setFormData({...formData, name: u.name, email: u.email, mobile: u.mobile || '', role: u.role, designation: u.designation || ''});
+                                                                    setOpenDropdown(null);
+                                                                }}
+                                                                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-blue-600 rounded-lg"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
                                                                 onClick={() => handleDeleteClick(u._id)}
                                                                 className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-red-600 rounded-lg"
                                                             >
@@ -367,6 +431,30 @@ export default function UsersPage() {
                                 ))}
                             </tbody>
                         </table>
+                    
+                        {/* Pagination */}
+                        <div className="mt-6 flex items-center justify-between px-6 py-4 bg-gray-50 border-t">
+                            <div className="text-sm text-gray-700">
+                                Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, filteredAssets.length)}</span> of <span className="font-semibold">{filteredAssets.length}</span> items
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                    Previous
+                                </button>
+                                <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -375,9 +463,9 @@ export default function UsersPage() {
                 <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-                            <h2 className="text-xl font-bold text-gray-900">Create Account</h2>
+                            <h2 className="text-xl font-bold text-gray-900">{editingUserId ? "Edit User" : "Create Account"}</h2>
                             <button 
-                                onClick={() => setShowModal(false)}
+                                onClick={() => {setShowModal(false); setEditingUserId(null);}}
                                 className="text-gray-400 hover:text-gray-600"
                             >
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -532,7 +620,7 @@ export default function UsersPage() {
                                 {/* Asset Assignment Section */}
                                 <div className="col-span-2 border-t border-gray-200 pt-6 mt-4">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Asset Assignment (Optional)</h3>
-                                    <p className="text-sm text-gray-600 mb-4">Select category and assets to assign to this user. You can add multiple devices.</p>
+                                    <p className="text-base text-gray-600 mb-4">Select category and assets to assign to this user. You can add multiple devices.</p>
                                     
                                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                                         <div className="grid grid-cols-2 gap-4 mb-3">
@@ -563,7 +651,7 @@ export default function UsersPage() {
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent disabled:bg-gray-100 bg-white"
                                                 >
                                                     <option value="">-- Select Asset --</option>
-                                                    {filteredAssets.map((asset) => (
+                                                    {currentItems.map((asset) => (
                                                         <option key={asset._id} value={asset._id}>
                                                             {asset.name} - {asset.serialNumber}
                                                         </option>
@@ -592,7 +680,7 @@ export default function UsersPage() {
                                     {selectedAssets.length > 0 && (
                                         <div className="mt-4">
                                             <div className="flex items-center justify-between mb-2">
-                                                <p className="text-sm font-semibold text-gray-900">
+                                                <p className="text-base font-semibold text-gray-900">
                                                     Devices to be Assigned ({selectedAssets.length})
                                                 </p>
                                                 <button
@@ -611,7 +699,7 @@ export default function UsersPage() {
                                                                 {index + 1}
                                                             </span>
                                                             <div>
-                                                                <p className="text-sm font-medium text-gray-900">{asset.name}</p>
+                                                                <p className="text-base font-medium text-gray-900">{asset.name}</p>
                                                                 <p className="text-xs text-gray-500">S/N: {asset.serialNumber}</p>
                                                             </div>
                                                         </div>

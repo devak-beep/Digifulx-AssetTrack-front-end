@@ -19,6 +19,8 @@ export default function AssetsPage() {
     const { user, token } = useAuth();
     const [assets, setAssets] = useState<Asset[]>([]);
     const [filteredAssets, setFilteredAssets] = useState<Asset[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     
     // Clear any cached data on mount
     useEffect(() => {
@@ -72,7 +74,14 @@ export default function AssetsPage() {
         }
         
         setFilteredAssets(filtered);
+        setCurrentPage(1); // Reset to first page when filters change
     }, [assets, filters]);
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentAssets = filteredAssets.slice(startIndex, endIndex);
 
     const fetchAssets = async () => {
         if (!token) return;
@@ -99,7 +108,8 @@ export default function AssetsPage() {
                 // Force clear and set fresh data
                 setAssets([]);
                 setTimeout(() => {
-                    setAssets(data.data.assets || []);
+                    const assetData = data.data?.assets || data.data || [];
+                    setAssets(Array.isArray(assetData) ? assetData : []);
                 }, 0);
             } else {
                 setError(data.message || "Failed to fetch assets");
@@ -233,11 +243,11 @@ export default function AssetsPage() {
                     <div className="px-6 py-4 bg-white border-b border-gray-200">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                                 <select
                                     value={filters.category}
                                     onChange={(e) => setFilters({...filters, category: e.target.value})}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
                                 >
                                     <option value="">All Categories</option>
                                     {[...new Set(assets.map(a => a.category))].map(cat => (
@@ -246,11 +256,11 @@ export default function AssetsPage() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Brand</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
                                 <select
                                     value={filters.brand}
                                     onChange={(e) => setFilters({...filters, brand: e.target.value})}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
                                 >
                                     <option value="">All Brands</option>
                                     {[...new Set(assets.map(a => a.brand))].map(brand => (
@@ -259,11 +269,11 @@ export default function AssetsPage() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                                 <select
                                     value={filters.status}
                                     onChange={(e) => setFilters({...filters, status: e.target.value})}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
                                 >
                                     <option value="">All Status</option>
                                     <option value="available">Available</option>
@@ -299,22 +309,22 @@ export default function AssetsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredAssets.map((asset) => (
+                                {currentAssets.map((asset) => (
                                     <tr key={asset._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-semibold text-gray-900">{asset.brand}</div>
+                                            <div className="text-base font-semibold text-gray-900">{asset.brand}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-700">{asset.model}</div>
+                                            <div className="text-base text-gray-700">{asset.model}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-700 capitalize">{asset.category}</div>
+                                            <div className="text-base text-gray-700 capitalize">{asset.category}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-600 font-mono">{asset.serialNumber}</div>
+                                            <div className="text-base text-gray-600 font-mono">{asset.serialNumber}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                                                 asset.status === 'available' ? 'bg-green-100 text-green-700' :
                                                 asset.status === 'assigned' ? 'bg-blue-100 text-blue-700' :
                                                 asset.status === 'under-repair' ? 'bg-yellow-100 text-yellow-700' :
@@ -353,6 +363,55 @@ export default function AssetsPage() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Pagination */}
+                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                        <div className="text-sm text-gray-700">
+                            Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, filteredAssets.length)}</span> of <span className="font-semibold">{filteredAssets.length}</span> assets
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            
+                            <div className="flex items-center gap-1">
+                                {[...Array(totalPages)].map((_, i) => {
+                                    const page = i + 1;
+                                    // Show first, last, current, and pages around current
+                                    if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                                        return (
+                                            <button
+                                                key={page}
+                                                onClick={() => setCurrentPage(page)}
+                                                className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                                                    currentPage === page
+                                                        ? 'bg-[#76C043] text-white'
+                                                        : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {page}
+                                            </button>
+                                        );
+                                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                                        return <span key={page} className="px-2 text-gray-500">...</span>;
+                                    }
+                                    return null;
+                                })}
+                            </div>
+
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

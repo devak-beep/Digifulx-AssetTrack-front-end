@@ -20,6 +20,8 @@ interface Vendor {
 
 export default function VendorsPage() {
     const { token } = useAuth();
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -55,7 +57,8 @@ export default function VendorsPage() {
             const data = await response.json();
 
             if (data.success) {
-                setVendors(data.data.vendors || []);
+                const vendorData = data.data?.vendors || data.data || [];
+                setVendors(Array.isArray(vendorData) ? vendorData : []);
             }
         } catch (err) {
             console.error(err);
@@ -171,10 +174,21 @@ export default function VendorsPage() {
         if (field === 'mobile') {
             // Only allow numbers, +, -, and spaces
             value = value.replace(/[^0-9+\-\s]/g, '');
+            // Limit to 10 digits (remove +, -, spaces for counting)
+            const digitsOnly = value.replace(/[^0-9]/g, '');
+            if (digitsOnly.length > 10) {
+                value = value.slice(0, value.length - (digitsOnly.length - 10));
+            }
         }
         newContacts[index][field] = value;
         setFormData({ ...formData, contacts: newContacts });
     };
+
+    
+    const totalPages = vendors.length > 0 ? Math.ceil(vendors.length / itemsPerPage) : 1;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentVendors = vendors.slice(startIndex, endIndex);
 
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
@@ -194,7 +208,7 @@ export default function VendorsPage() {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-600">
+                            <p className="text-base text-gray-600">
                                 Total <span className="font-medium text-gray-900">{vendors.length}</span> vendors
                             </p>
                             <button 
@@ -232,13 +246,13 @@ export default function VendorsPage() {
                                 {vendors.map((vendor) => (
                                     <tr key={vendor._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-semibold text-gray-900">{vendor.name}</div>
+                                            <div className="text-base font-semibold text-gray-900">{vendor.name}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-700">{vendor.company}</div>
+                                            <div className="text-base text-gray-700">{vendor.company}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-sm text-gray-600">
+                                            <div className="text-base text-gray-600">
                                                 {vendor.contacts.map((contact, idx) => (
                                                     <div key={idx} className="mb-1">
                                                         <span className="font-medium">{contact.name}</span>
@@ -248,7 +262,7 @@ export default function VendorsPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-600">{vendor.city}</div>
+                                            <div className="text-base text-gray-600">{vendor.city}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
@@ -270,7 +284,30 @@ export default function VendorsPage() {
                                 ))}
                             </tbody>
                         </table>
+                    
+                    {/* Pagination */}
+                    <div className="mt-6 flex items-center justify-between px-6 py-4 bg-gray-50">
+                        <div className="text-sm text-gray-700">
+                            Page {currentPage} of {totalPages}
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Next
+                            </button>
+                        </div>
                     </div>
+</div>
                 </div>
             )}
 
