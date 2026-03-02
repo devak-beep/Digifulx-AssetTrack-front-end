@@ -218,11 +218,11 @@ export default function AssignmentsPage() {
                     <div className="px-6 py-4 bg-white border-b border-gray-200">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                                 <select
                                     value={filters.category}
                                     onChange={(e) => setFilters({...filters, category: e.target.value})}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
                                 >
                                     <option value="">All Categories</option>
                                     {[...new Set(assignments.map(a => a.assetId?.category).filter(Boolean))].map(cat => (
@@ -231,11 +231,11 @@ export default function AssignmentsPage() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">User</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">User</label>
                                 <select
                                     value={filters.user}
                                     onChange={(e) => setFilters({...filters, user: e.target.value})}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
                                 >
                                     <option value="">All Users</option>
                                     {users.map(user => (
@@ -244,11 +244,11 @@ export default function AssignmentsPage() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                                 <select
                                     value={filters.status}
                                     onChange={(e) => setFilters({...filters, status: e.target.value})}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
                                 >
                                     <option value="">All Status</option>
                                     <option value="active">Active</option>
