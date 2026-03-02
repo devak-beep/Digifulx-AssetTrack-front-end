@@ -412,12 +412,23 @@ export default function AssetsPage() {
                                         </td>
                                         {(user?.role === "Admin" || user?.role === "Superadmin") && (
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <button
-                                                    onClick={async () => {
-                                                        setAssetToDelete(asset);
-                                                        setAssignmentInfo(null); // Clear previous info
-                                                        // Fetch assignment info
-                                                        try {
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            // TODO: Implement edit functionality
+                                                            alert("Edit functionality coming soon");
+                                                        }}
+                                                        className="px-3 py-1.5 text-xs font-medium rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                                                        title="Edit Asset"
+                                                    >
+                                                        ✏️ Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            setAssetToDelete(asset);
+                                                            setAssignmentInfo(null); // Clear previous info
+                                                            // Fetch assignment info
+                                                            try {
                                                             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
                                                             const res = await fetch(`${baseUrl}/assignments/asset/${asset._id}`, {
                                                                 headers: { "Authorization": `Bearer ${token}` }
@@ -440,6 +451,7 @@ export default function AssetsPage() {
                                                 >
                                                     🗑️ Delete
                                                 </button>
+                                                </div>
                                             </td>
                                         )}
                                     </tr>
