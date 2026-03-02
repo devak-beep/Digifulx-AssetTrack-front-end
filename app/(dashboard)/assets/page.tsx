@@ -415,6 +415,7 @@ export default function AssetsPage() {
                                                 <button
                                                     onClick={async () => {
                                                         setAssetToDelete(asset);
+                                                        setAssignmentInfo(null); // Clear previous info
                                                         // Fetch assignment info
                                                         try {
                                                             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
@@ -430,7 +431,7 @@ export default function AssetsPage() {
                                                                 });
                                                             }
                                                         } catch (err) {
-                                                            console.error(err);
+                                                            console.error("Error fetching assignment:", err);
                                                         }
                                                         setShowDeleteModal(true);
                                                     }}
