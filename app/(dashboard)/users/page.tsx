@@ -55,6 +55,11 @@ export default function UsersPage() {
     const [selectedUserForEdit, setSelectedUserForEdit] = useState<User | null>(null);
     const [editRoleForm, setEditRoleForm] = useState({ role: "", designation: "" });
     const [editingRole, setEditingRole] = useState(false);
+    const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+    const [selectedUserForPassword, setSelectedUserForPassword] = useState<User | null>(null);
+    const [resetPasswordForm, setResetPasswordForm] = useState({ newPassword: "", confirmPassword: "" });
+    const [resetPasswordError, setResetPasswordError] = useState("");
+    const [resettingPassword, setResettingPassword] = useState(false);
     
     const [formData, setFormData] = useState({
         name: "",
@@ -339,7 +344,70 @@ export default function UsersPage() {
         }
     };
 
-    
+    const handleResetPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (resetPasswordForm.newPassword !== resetPasswordForm.confirmPassword) {
+            setResetPasswordError("Passwords do not match");
+            return;
+        }
+
+        if (resetPasswordForm.newPassword.length < 6) {
+            setResetPasswordError("Password must be at least 6 characters");
+            return;
+        }
+
+        if (!/[A-Z]/.test(resetPasswordForm.newPassword)) {
+            setResetPasswordError("Password must contain at least 1 uppercase letter");
+            return;
+        }
+
+        if (!/[0-9]/.test(resetPasswordForm.newPassword)) {
+            setResetPasswordError("Password must contain at least 1 number");
+            return;
+        }
+
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(resetPasswordForm.newPassword)) {
+            setResetPasswordError("Password must contain at least 1 special character");
+            return;
+        }
+
+        if (!selectedUserForPassword) return;
+
+        setResettingPassword(true);
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+            const response = await fetch(`${baseUrl}/users/${selectedUserForPassword._id}/reset-password`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    newPassword: resetPasswordForm.newPassword
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setSuccessMessage(`Password reset successfully for ${selectedUserForPassword.name}!`);
+                setShowResetPasswordModal(false);
+                setSelectedUserForPassword(null);
+                setResetPasswordForm({ newPassword: "", confirmPassword: "" });
+                setResetPasswordError("");
+                setTimeout(() => setSuccessMessage(""), 3000);
+            } else {
+                setResetPasswordError(data.message || "Failed to reset password");
+            }
+        } catch (err: any) {
+            setResetPasswordError(err.message || "An error occurred");
+        } finally {
+            setResettingPassword(false);
+        }
+    };
+
+    const totalPages = filteredAssets.length > 0 ? Math.ceil(filteredAssets.length / itemsPerPage) : 1;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const currentItems = filteredAssets.slice(startIndex, endIndex);
@@ -438,47 +506,46 @@ export default function UsersPage() {
                                             <div className="text-base text-gray-600">{u.designation || '-'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="relative">
+                                            <div className="flex items-center gap-2">
                                                 <button
-                                                    onClick={() => setOpenDropdown(openDropdown === u._id ? null : u._id)}
-                                                    className="px-3 py-1 text-xs font-medium rounded-lg transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                                    onClick={() => {
+                                                        setEditingUserId(u._id);
+                                                        setFormData({...formData, name: u.name, email: u.email, mobile: u.mobile || '', role: u.role, designation: u.designation || ''});
+                                                        setShowModal(true);
+                                                    }}
+                                                    className="px-3 py-1.5 text-xs font-medium rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                                                    title="Edit User"
                                                 >
-                                                    Actions ▾
+                                                    ✏️ Edit
                                                 </button>
-                                                {openDropdown === u._id && (
+                                                {user?.role === "Admin" || user?.role === "Superadmin" ? (
                                                     <>
-                                                        <div 
-                                                            className="fixed inset-0 z-10" 
-                                                            onClick={() => setOpenDropdown(null)}
-                                                        />
-                                                        <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditingUserId(u._id);
-                                                                    setFormData({...formData, name: u.name, email: u.email, mobile: u.mobile || '', role: u.role, designation: u.designation || ''});
-                                                                    setOpenDropdown(null);
-                                                                }}
-                                                                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-blue-600 rounded-lg"
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                            {user?.role === "Admin" || user?.role === "Superadmin" ? (
-                                                                <button
-                                                                    onClick={() => handleEditRoleClick(u)}
-                                                                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-purple-600 rounded-lg"
-                                                                >
-                                                                    Change Role
-                                                                </button>
-                                                            ) : null}
-                                                            <button
-                                                                onClick={() => handleDeleteClick(u._id)}
-                                                                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-red-600 rounded-lg"
-                                                            >
-                                                                Deactivate
-                                                            </button>
-                                                        </div>
+                                                        <button
+                                                            onClick={() => handleEditRoleClick(u)}
+                                                            className="px-3 py-1.5 text-xs font-medium rounded bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+                                                            title="Change Role"
+                                                        >
+                                                            👤 Role
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedUserForPassword(u);
+                                                                setShowResetPasswordModal(true);
+                                                            }}
+                                                            className="px-3 py-1.5 text-xs font-medium rounded bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors"
+                                                            title="Reset Password"
+                                                        >
+                                                            🔐 Password
+                                                        </button>
                                                     </>
-                                                )}
+                                                ) : null}
+                                                <button
+                                                    onClick={() => handleDeleteClick(u._id)}
+                                                    className="px-3 py-1.5 text-xs font-medium rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                                                    title="Deactivate User"
+                                                >
+                                                    🗑️ Remove
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -568,7 +635,7 @@ export default function UsersPage() {
                                     <div className="relative">
                                         <input
                                             type={showPassword ? "text" : "password"}
-                                            required
+                                            required={!editingUserId}
                                             value={formData.password}
                                             onChange={(e) => {
                                                 const password = e.target.value;
@@ -589,6 +656,7 @@ export default function UsersPage() {
                                             className={`w-full px-3 py-2 border ${passwordError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent pr-10`}
                                             placeholder="e.g., Pass@123"
                                             minLength={6}
+                                            disabled={editingUserId ? true : false}
                                         />
                                         <button
                                             type="button"
@@ -608,7 +676,7 @@ export default function UsersPage() {
                                         </button>
                                     </div>
                                     {passwordError && <p className="mt-1 text-xs text-red-600">{passwordError}</p>}
-                                    <p className="mt-1 text-xs text-gray-500">Must contain: 6+ chars, 1 uppercase, 1 number, 1 special character</p>
+                                    {!editingUserId && <p className="mt-1 text-xs text-gray-500">Must contain: 6+ chars, 1 uppercase, 1 number, 1 special character</p>}
                                 </div>
 
                                 <div>
@@ -671,6 +739,8 @@ export default function UsersPage() {
                                     />
                                 </div>
 
+                                {!editingUserId && (
+                                <>
                                 {/* Asset Assignment Section */}
                                 <div className="col-span-2 border-t border-gray-200 pt-6 mt-4">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Asset Assignment (Optional)</h3>
@@ -773,6 +843,8 @@ export default function UsersPage() {
                                         </div>
                                     )}
                                 </div>
+                                </>
+                                )}
                             </div>
 
                             <div className="mt-6 flex gap-3 justify-end border-t border-gray-200 pt-4">
@@ -798,7 +870,7 @@ export default function UsersPage() {
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={submitting || emailError !== "" || passwordError !== "" || formData.mobile.length !== 13}
+                                    disabled={submitting || emailError !== "" || (!editingUserId && (passwordError !== "" || formData.mobile.length !== 13))}
                                     className="px-5 py-2.5 bg-[#76C043] text-white rounded-lg hover:bg-[#65a83a] transition-colors disabled:opacity-50 font-medium flex items-center gap-2"
                                 >
                                     {submitting ? (
@@ -807,14 +879,14 @@ export default function UsersPage() {
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
-                                            Creating User...
+                                            {editingUserId ? "Updating User..." : "Creating User..."}
                                         </>
                                     ) : (
                                         <>
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                             </svg>
-                                            {selectedAssets.length > 0 ? `Create User & Assign ${selectedAssets.length} Device${selectedAssets.length > 1 ? 's' : ''}` : 'Create User'}
+                                            {editingUserId ? "Update User" : (selectedAssets.length > 0 ? `Create User & Assign ${selectedAssets.length} Device${selectedAssets.length > 1 ? 's' : ''}` : 'Create User')}
                                         </>
                                     )}
                                 </button>
@@ -917,6 +989,86 @@ export default function UsersPage() {
                                     className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
                                 >
                                     {editingRole ? "Updating..." : "Update"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {showResetPasswordModal && selectedUserForPassword && (
+                <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+                        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-900">Reset Password</h2>
+                            <button
+                                onClick={() => {
+                                    setShowResetPasswordModal(false);
+                                    setResetPasswordForm({ newPassword: "", confirmPassword: "" });
+                                    setResetPasswordError("");
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleResetPassword} className="p-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">User: {selectedUserForPassword.name}</label>
+                                    <p className="text-xs text-gray-500">{selectedUserForPassword.email}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">New Password *</label>
+                                    <input
+                                        type="password"
+                                        required
+                                        value={resetPasswordForm.newPassword}
+                                        onChange={(e) => setResetPasswordForm({...resetPasswordForm, newPassword: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-600 focus:border-transparent"
+                                        placeholder="e.g., Pass@123"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
+                                    <input
+                                        type="password"
+                                        required
+                                        value={resetPasswordForm.confirmPassword}
+                                        onChange={(e) => setResetPasswordForm({...resetPasswordForm, confirmPassword: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-600 focus:border-transparent"
+                                        placeholder="e.g., Pass@123"
+                                    />
+                                </div>
+                                {resetPasswordError && (
+                                    <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+                                        {resetPasswordError}
+                                    </div>
+                                )}
+                                <p className="text-xs text-gray-500">Must contain: 6+ chars, 1 uppercase, 1 number, 1 special character</p>
+                            </div>
+
+                            <div className="mt-6 flex gap-3 justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowResetPasswordModal(false);
+                                        setResetPasswordForm({ newPassword: "", confirmPassword: "" });
+                                        setResetPasswordError("");
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={resettingPassword}
+                                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+                                >
+                                    {resettingPassword ? "Resetting..." : "Reset Password"}
                                 </button>
                             </div>
                         </form>
