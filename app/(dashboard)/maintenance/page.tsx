@@ -201,11 +201,16 @@ export default function MaintenancePage() {
         console.log('Modal should show now');
     };
 
-    
-    const totalPages = maintenances.length > 0 ? Math.ceil(maintenances.length / itemsPerPage) : 1;
+    const sortedMaintenances = [...maintenances].sort((a, b) => {
+        const dateA = a.nextDate ? new Date(a.nextDate).getTime() : Infinity;
+        const dateB = b.nextDate ? new Date(b.nextDate).getTime() : Infinity;
+        return dateA - dateB;
+    });
+
+    const totalPages = sortedMaintenances.length > 0 ? Math.ceil(sortedMaintenances.length / itemsPerPage) : 1;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const currentMaintenance = maintenances.slice(startIndex, endIndex);
+    const currentMaintenance = sortedMaintenances.slice(startIndex, endIndex);
 
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
@@ -240,7 +245,7 @@ export default function MaintenancePage() {
                     <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center justify-between">
                             <p className="text-base text-gray-600">
-                                Total <span className="font-medium text-gray-900">{maintenances.length}</span> maintenance records
+                                Total <span className="font-medium text-gray-900">{sortedMaintenances.length}</span> maintenance records
                             </p>
                             <button 
                                 onClick={() => setShowModal(true)}
@@ -320,7 +325,7 @@ export default function MaintenancePage() {
                         {/* Pagination */}
                         <div className="mt-6 flex items-center justify-between px-6 py-4 bg-gray-50 border-t">
                             <div className="text-sm text-gray-700">
-                                Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, maintenances.length)}</span> of <span className="font-semibold">{maintenances.length}</span> items
+                                Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, sortedMaintenances.length)}</span> of <span className="font-semibold">{sortedMaintenances.length}</span> items
                             </div>
                             <div className="flex items-center gap-2">
                                 <button
