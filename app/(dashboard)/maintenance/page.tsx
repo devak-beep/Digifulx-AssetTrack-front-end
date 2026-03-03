@@ -78,6 +78,12 @@ export default function MaintenancePage() {
         fetchData();
     }, [token]);
 
+    useEffect(() => {
+        if (showModal) {
+            fetchData();
+        }
+    }, [showModal]);
+
     const fetchData = async () => {
         if (!token) return;
         

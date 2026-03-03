@@ -83,7 +83,7 @@ export default function AssignmentsPage() {
     
     // Apply filters
     useEffect(() => {
-        let filtered = assignments.filter(a => a.status === 'active');
+        let filtered = assignments;
         
         if (filters.category) {
             filtered = filtered.filter(a => a.assetId?.category === filters.category);
@@ -93,6 +93,9 @@ export default function AssignmentsPage() {
         }
         if (filters.status) {
             filtered = filtered.filter(a => a.status === filters.status);
+        } else {
+            // Default to showing only active assignments if no status filter is selected
+            filtered = filtered.filter(a => a.status === 'active');
         }
         if (searchQuery) {
             filtered = filtered.filter(a => 

@@ -6,6 +6,11 @@ import { useEffect, useState } from "react";
 export default function ComplaintsPage() {
     const { user } = useAuth();
     const [complaints, setComplaints] = useState([]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filters, setFilters] = useState({
+        priority: "",
+        status: ""
+    });
     const [assignments, setAssignments] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -207,10 +212,21 @@ export default function ComplaintsPage() {
         return colors[priority] || "bg-gray-100 text-gray-800";
     };
 
-    const totalPages = complaints.length > 0 ? Math.ceil(complaints.length / itemsPerPage) : 1;
+    const filteredComplaints = complaints.filter(c => {
+        const matchesSearch = c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            c.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            c.assetId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            c.userId?.name?.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        const matchesPriority = !filters.priority || c.priority === filters.priority;
+        const matchesStatus = !filters.status || c.status === filters.status;
+        
+        return matchesSearch && matchesPriority && matchesStatus;
+    });
+    const totalPages = filteredComplaints.length > 0 ? Math.ceil(filteredComplaints.length / itemsPerPage) : 1;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const currentComplaints = complaints.slice(startIndex, endIndex);
+    const currentComplaints = filteredComplaints.slice(startIndex, endIndex);
 
     if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#76C043]"></div></div>;
 
@@ -249,6 +265,60 @@ export default function ComplaintsPage() {
             {/* Content */}
             <div className="p-6">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                        <div className="mb-4">
+                            <input
+                                type="text"
+                                placeholder="Search by title, description, asset, or user name..."
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                            />
+                        </div>
+                        <div className="flex gap-3">
+                            <select
+                                value={filters.priority}
+                                onChange={(e) => {
+                                    setFilters({...filters, priority: e.target.value});
+                                    setCurrentPage(1);
+                                }}
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent text-sm"
+                            >
+                                <option value="">All Priorities</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                            <select
+                                value={filters.status}
+                                onChange={(e) => {
+                                    setFilters({...filters, status: e.target.value});
+                                    setCurrentPage(1);
+                                }}
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent text-sm"
+                            >
+                                <option value="">All Status</option>
+                                <option value="new">New</option>
+                                <option value="acknowledged">Acknowledged</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                            {(filters.priority || filters.status) && (
+                                <button
+                                    onClick={() => {
+                                        setFilters({priority: "", status: ""});
+                                        setCurrentPage(1);
+                                    }}
+                                    className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium"
+                                >
+                                    Clear Filters
+                                </button>
+                            )}
+                        </div>
+                    </div>
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
@@ -352,7 +422,7 @@ export default function ComplaintsPage() {
                         {/* Pagination */}
                         <div className="mt-6 flex items-center justify-between px-6 py-4 bg-gray-50 border-t">
                             <div className="text-sm text-gray-700">
-                                Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, complaints.length)}</span> of <span className="font-semibold">{complaints.length}</span> items
+                                Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, filteredComplaints.length)}</span> of <span className="font-semibold">{filteredComplaints.length}</span> items
                             </div>
                             <div className="flex items-center gap-2">
                                 <button

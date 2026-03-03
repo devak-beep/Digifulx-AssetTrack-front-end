@@ -33,7 +33,7 @@ export default function AdminDashboard() {
             const [assetsRes, usersRes, assignmentsRes, complaintsRes, maintenanceRes] = await Promise.all([
                 fetch(`${baseUrl}/assets?limit=1000`, { headers: { Authorization: `Bearer ${user?.token}` } }),
                 fetch(`${baseUrl}/users`, { headers: { Authorization: `Bearer ${user?.token}` } }),
-                fetch(`${baseUrl}/assignments`, { headers: { Authorization: `Bearer ${user?.token}` } }),
+                fetch(`${baseUrl}/assignments?limit=1000`, { headers: { Authorization: `Bearer ${user?.token}` } }),
                 fetch(`${baseUrl}/complaints`, { headers: { Authorization: `Bearer ${user?.token}` } }),
                 fetch(`${baseUrl}/maintenance`, { headers: { Authorization: `Bearer ${user?.token}` } })
             ]);
@@ -46,7 +46,7 @@ export default function AdminDashboard() {
 
             if (assets.success && users.success && assignments.success && complaints.success) {
                 const assetsList = assets.data.assets || [];
-                const assignmentsList = Array.isArray(assignments.data) ? assignments.data : (assignments.data?.data || []);
+                const assignmentsList = assignments.data?.data || [];
                 const complaintsList = Array.isArray(complaints.data) ? complaints.data : (complaints.data?.data || []);
                 const usersList = Array.isArray(users.data) ? users.data : (users.data?.data || []);
                 const maintenanceList = Array.isArray(maintenance.data) ? maintenance.data : (maintenance.data?.data || []);
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
                     activeAssignments: assignmentsList.filter((a: any) => a.status === 'active').length,
                     pendingComplaints: complaintsList.filter((c: any) => c.status !== 'completed').length,
                     availableAssets: assetsList.filter((a: any) => a.status === 'available').length,
-                    damagedAssets: assetsList.filter((a: any) => a.status === 'damage').length
+                    damagedAssets: assetsList.filter((a: any) => a.status === 'damaged').length
                 });
 
                 // Subcategory distribution data (by asset name)
@@ -173,7 +173,7 @@ export default function AdminDashboard() {
                     <h3 className="text-3xl font-bold text-gray-900">{stats.activeAssignments}</h3>
                     <p className="text-sm text-gray-600 mt-1">Active Assignments</p>
                     <div className="mt-3 flex items-center text-xs text-green-600">
-                        <span>Currently assigned</span>
+                        <span>{stats.activeAssignments > 0 ? `${stats.activeAssignments} asset${stats.activeAssignments > 1 ? 's' : ''} assigned` : 'No active assignments'}</span>
                     </div>
                 </div>
 
@@ -203,7 +203,7 @@ export default function AdminDashboard() {
                     <h3 className="text-3xl font-bold text-gray-900">{stats.damagedAssets}</h3>
                     <p className="text-sm text-gray-600 mt-1">Damaged Assets</p>
                     <div className="mt-3 flex items-center text-xs text-red-600">
-                        <span>Needs repair</span>
+                        <span>{stats.damagedAssets > 0 ? 'Needs repair' : 'All assets in good condition'}</span>
                     </div>
                 </div>
 

@@ -34,6 +34,7 @@ interface SelectedAsset {
 export default function UsersPage() {
     const { user, token } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
     const [assets, setAssets] = useState<Asset[]>([]);
     const [categories, setCategories] = useState<string[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -410,10 +411,16 @@ export default function UsersPage() {
     };
 
     const usersPerPage = 10;
-    const totalPages = users.length > 0 ? Math.ceil(users.length / usersPerPage) : 1;
+    const filteredUsers = users.filter(u =>
+        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.mobile?.includes(searchQuery) ||
+        u.role.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    const totalPages = filteredUsers.length > 0 ? Math.ceil(filteredUsers.length / usersPerPage) : 1;
     const userStartIndex = (currentPage - 1) * usersPerPage;
     const userEndIndex = userStartIndex + usersPerPage;
-    const currentUsers = users.slice(userStartIndex, userEndIndex);
+    const currentUsers = filteredUsers.slice(userStartIndex, userEndIndex);
 
     const assetTotalPages = filteredAssets.length > 0 ? Math.ceil(filteredAssets.length / itemsPerPage) : 1;
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -455,9 +462,9 @@ export default function UsersPage() {
             ) : (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between mb-4">
                             <p className="text-base text-gray-600">
-                                Total <span className="font-medium text-gray-900">{users.length}</span> users
+                                Total <span className="font-medium text-gray-900">{filteredUsers.length}</span> of {users.length} users
                             </p>
                             <button 
                                 onClick={() => {
@@ -478,6 +485,18 @@ export default function UsersPage() {
                             >
                                 + Create Account
                             </button>
+                        </div>
+                        <div className="mt-4">
+                            <input
+                                type="text"
+                                placeholder="Search by name, email, mobile, or role..."
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                            />
                         </div>
                     </div>
 
