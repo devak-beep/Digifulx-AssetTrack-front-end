@@ -22,13 +22,33 @@ export default function SettingsPage() {
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         
+        if (!passwordForm.currentPassword) {
+            setMessage("Current password is required");
+            return;
+        }
+
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
             setMessage("New passwords do not match");
             return;
         }
 
-        if (passwordForm.newPassword.length < 6) {
-            setMessage("Password must be at least 6 characters");
+        if (passwordForm.newPassword.length < 8) {
+            setMessage("Password must be at least 8 characters");
+            return;
+        }
+
+        if (!/[A-Z]/.test(passwordForm.newPassword)) {
+            setMessage("Password must contain at least one uppercase letter");
+            return;
+        }
+
+        if (!/[0-9]/.test(passwordForm.newPassword)) {
+            setMessage("Password must contain at least one number");
+            return;
+        }
+
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(passwordForm.newPassword)) {
+            setMessage("Password must contain at least one special character");
             return;
         }
 
@@ -215,6 +235,9 @@ export default function SettingsPage() {
                                         onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
                                     />
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Must be at least 8 characters with one uppercase letter, one number, and one special character
+                                    </p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>

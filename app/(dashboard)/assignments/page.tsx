@@ -56,6 +56,9 @@ export default function AssignmentsPage() {
         status: "active"
     });
     const [editingAssignment, setEditingAssignment] = useState(false);
+    const [showReturnModal, setShowReturnModal] = useState(false);
+    const [assignmentToReturn, setAssignmentToReturn] = useState<Assignment | null>(null);
+    const [returning, setReturning] = useState(false);
     
     // Filter state
     const [filters, setFilters] = useState({
@@ -63,6 +66,7 @@ export default function AssignmentsPage() {
         user: "",
         status: ""
     });
+    const [searchQuery, setSearchQuery] = useState("");
     const [categories, setCategories] = useState<string[]>([]);
     const [formData, setFormData] = useState({
         category: "",
@@ -79,7 +83,7 @@ export default function AssignmentsPage() {
     
     // Apply filters
     useEffect(() => {
-        let filtered = assignments;
+        let filtered = assignments.filter(a => a.status === 'active');
         
         if (filters.category) {
             filtered = filtered.filter(a => a.assetId?.category === filters.category);
@@ -90,9 +94,19 @@ export default function AssignmentsPage() {
         if (filters.status) {
             filtered = filtered.filter(a => a.status === filters.status);
         }
+        if (searchQuery) {
+            filtered = filtered.filter(a => 
+                a.assetId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                a.assetId?.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                a.assetId?.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                a.assetId?.serialNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                a.userId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                a.userId?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
         
         setFilteredAssignments(filtered);
-    }, [assignments, filters]);
+    }, [assignments, filters, searchQuery]);
 
     const fetchData = async () => {
         if (!token) return;
@@ -101,7 +115,7 @@ export default function AssignmentsPage() {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
             
             const [assignmentsRes, assetsRes, usersRes] = await Promise.all([
-                fetch(`${baseUrl}/assignments`, {
+                fetch(`${baseUrl}/assignments?limit=1000`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 }),
                 fetch(`${baseUrl}/assets?limit=1000`, {
@@ -206,6 +220,31 @@ export default function AssignmentsPage() {
         }
     };
 
+    const handleReturnAsset = async () => {
+        if (!assignmentToReturn) return;
+
+        setReturning(true);
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+            const response = await fetch(`${baseUrl}/assignments/${assignmentToReturn._id}/return`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (data.success) {
+                setShowReturnModal(false);
+                setAssignmentToReturn(null);
+                fetchData();
+            } else {
+                alert(data.message || "Failed to return asset");
+            }
+        } catch (err: any) {
+            alert(err.message || "An error occurred");
+        } finally {
+            setReturning(false);
+        }
+    };
+
     
     const totalPages = Math.ceil(filteredAssignments.length / 10);
     const startIndex = (currentPage - 1) * 10;
@@ -256,6 +295,15 @@ export default function AssignmentsPage() {
                     
                     {/* Filters */}
                     <div className="px-6 py-4 bg-white border-b border-gray-200">
+                        <div className="mb-4">
+                            <input
+                                type="text"
+                                placeholder="Search by asset name, brand, model, serial number, user name, or email..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                            />
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
@@ -371,19 +419,32 @@ export default function AssignmentsPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <button
-                                                onClick={() => {
-                                                    setAssignmentToEdit(assignment);
-                                                    setEditFormData({
-                                                        notes: assignment.notes || "",
-                                                        status: assignment.status || "active"
-                                                    });
-                                                    setShowEditModal(true);
-                                                }}
-                                                className="px-3 py-1.5 text-xs font-medium rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
-                                            >
-                                                ✏️ Edit
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setAssignmentToEdit(assignment);
+                                                        setEditFormData({
+                                                            notes: assignment.notes || "",
+                                                            status: assignment.status || "active"
+                                                        });
+                                                        setShowEditModal(true);
+                                                    }}
+                                                    className="px-3 py-1.5 text-xs font-medium rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                                                >
+                                                    ✏️ Edit
+                                                </button>
+                                                {assignment.status === 'active' && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setAssignmentToReturn(assignment);
+                                                            setShowReturnModal(true);
+                                                        }}
+                                                        className="px-3 py-1.5 text-xs font-medium rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                                                    >
+                                                        ↩️ Unassign
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -607,6 +668,42 @@ export default function AssignmentsPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {showReturnModal && assignmentToReturn && (
+                <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <h2 className="text-xl font-bold text-gray-900">Unassign Asset</h2>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-gray-700 mb-2">Are you sure you want to unassign this asset?</p>
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <p className="font-semibold text-gray-900">{assignmentToReturn.assetId?.name}</p>
+                                <p className="text-sm text-gray-600">{assignmentToReturn.assetId?.brand} {assignmentToReturn.assetId?.model}</p>
+                                <p className="text-sm text-gray-500 mt-1">Assigned to: {assignmentToReturn.userId?.name}</p>
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 border-t border-gray-200 flex gap-3 justify-end">
+                            <button
+                                onClick={() => {
+                                    setShowReturnModal(false);
+                                    setAssignmentToReturn(null);
+                                }}
+                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleReturnAsset}
+                                disabled={returning}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                            >
+                                {returning ? "Unassigning..." : "Unassign Asset"}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -85,7 +85,7 @@ export default function MaintenancePage() {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
             
             const [maintenanceRes, assetsRes] = await Promise.all([
-                fetch(`${baseUrl}/maintenance?t=${Date.now()}`, {
+                fetch(`${baseUrl}/maintenance?limit=1000&t=${Date.now()}`, {
                     headers: { 
                         "Authorization": `Bearer ${token}`,
                         "Cache-Control": "no-cache, no-store, must-revalidate"
@@ -266,7 +266,7 @@ export default function MaintenancePage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {maintenances.map((maintenance) => (
+                                {currentMaintenance.map((maintenance) => (
                                     <tr key={maintenance._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="text-base font-semibold text-gray-900 capitalize">{maintenance.assetId?.name || '-'}</div>

@@ -726,6 +726,8 @@ export default function UsersPage() {
                                     />
                                 </div>
 
+                                {!editingUserId && (
+                                <>
                                 <div className="col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Assignment Notes <span className="text-gray-500 text-xs">(Optional - will be added to all assigned assets)</span>
@@ -739,8 +741,6 @@ export default function UsersPage() {
                                     />
                                 </div>
 
-                                {!editingUserId && (
-                                <>
                                 {/* Asset Assignment Section */}
                                 <div className="col-span-2 border-t border-gray-200 pt-6 mt-4">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Asset Assignment (Optional)</h3>

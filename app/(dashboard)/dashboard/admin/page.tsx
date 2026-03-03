@@ -31,7 +31,7 @@ export default function AdminDashboard() {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
             
             const [assetsRes, usersRes, assignmentsRes, complaintsRes, maintenanceRes] = await Promise.all([
-                fetch(`${baseUrl}/assets`, { headers: { Authorization: `Bearer ${user?.token}` } }),
+                fetch(`${baseUrl}/assets?limit=1000`, { headers: { Authorization: `Bearer ${user?.token}` } }),
                 fetch(`${baseUrl}/users`, { headers: { Authorization: `Bearer ${user?.token}` } }),
                 fetch(`${baseUrl}/assignments`, { headers: { Authorization: `Bearer ${user?.token}` } }),
                 fetch(`${baseUrl}/complaints`, { headers: { Authorization: `Bearer ${user?.token}` } }),
@@ -60,20 +60,19 @@ export default function AdminDashboard() {
                     damagedAssets: assetsList.filter((a: any) => a.status === 'damage').length
                 });
 
-                // Product distribution data (by product name)
-                const productCount: any = {};
+                // Subcategory distribution data (by asset name)
+                const subcategoryCount: any = {};
                 assetsList.forEach((asset: any) => {
-                    const product = (asset.name || `${asset.brand} ${asset.model}`).trim();
-                    productCount[product] = (productCount[product] || 0) + 1;
+                    const subcategory = asset.name?.trim().toLowerCase();
+                    if (subcategory) {
+                        subcategoryCount[subcategory] = (subcategoryCount[subcategory] || 0) + 1;
+                    }
                 });
-                console.log('Product Count:', productCount);
-                console.log('Total Assets:', assetsList.length);
-                console.log('Sample Assets:', assetsList.slice(0, 5).map((a: any) => ({ name: a.name, brand: a.brand, model: a.model })));
-                const productChartData = Object.entries(productCount)
-                    .map(([name, count]) => ({ name, count }))
+                const subcategoryChartData = Object.entries(subcategoryCount)
+                    .map(([name, count]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), count }))
                     .sort((a: any, b: any) => b.count - a.count)
-                    .slice(0, 8); // Show top 8 products
-                setCategoryData(productChartData);
+                    .slice(0, 8);
+                setCategoryData(subcategoryChartData);
 
                 // Assignment data for pie chart
                 const assigned = assignmentsList.filter((a: any) => a.status === 'active').length;
@@ -87,8 +86,8 @@ export default function AdminDashboard() {
                 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                 const costByMonth: any = {};
                 maintenanceList.forEach((m: any) => {
-                    if (m.cost && m.lastMaintenanceDate) {
-                        const month = new Date(m.lastMaintenanceDate).getMonth();
+                    if (m.cost && m.serviceDate) {
+                        const month = new Date(m.serviceDate).getMonth();
                         const monthName = monthNames[month];
                         costByMonth[monthName] = (costByMonth[monthName] || 0) + (m.cost || 0);
                     }
@@ -228,22 +227,8 @@ export default function AdminDashboard() {
             <div className="space-y-4">
                 <h2 className="text-2xl font-bold text-gray-900">Asset Insights</h2>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Product Distribution */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">Product Distribution</h3>
-                        <p className="text-sm text-gray-600 mb-4">Top products in inventory</p>
-                        <ResponsiveContainer width="100%" height={250}>
-                            <BarChart data={categoryData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-45} textAnchor="end" height={100} />
-                                <YAxis tick={{ fontSize: 12 }} />
-                                <Tooltip />
-                                <Bar dataKey="count" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-
+                {/* Two Charts on Top */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Assigned vs Available Assets */}
                     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                         <h3 className="text-lg font-bold text-gray-900 mb-1">Assigned vs. Available Assets</h3>
@@ -282,6 +267,21 @@ export default function AdminDashboard() {
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
+                </div>
+
+                {/* Subcategory Distribution - Full Width Below */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Distribution</h3>
+                    <p className="text-sm text-gray-600 mb-4">Subcategory Distribution - Top items in inventory</p>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={categoryData} margin={{ bottom: 40 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                            <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 'bold' }} angle={0} textAnchor="middle" height={60} />
+                            <YAxis tick={{ fontSize: 12, fontWeight: 'bold' }} />
+                            <Tooltip />
+                            <Bar dataKey="count" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
                 </div>
             </div>
 

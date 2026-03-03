@@ -48,7 +48,7 @@ export default function VendorsPage() {
         
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-            const response = await fetch(`${baseUrl}/vendors`, {
+            const response = await fetch(`${baseUrl}/vendors?limit=1000`, {
                 headers: {
                     "Authorization": `Bearer ${token}`
                 }
@@ -243,7 +243,7 @@ export default function VendorsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {vendors.map((vendor) => (
+                                {currentVendors.map((vendor) => (
                                     <tr key={vendor._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-base font-semibold text-gray-900 capitalize">{vendor.name}</div>

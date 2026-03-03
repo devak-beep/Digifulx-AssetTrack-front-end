@@ -43,7 +43,7 @@ export default function ComplaintsPage() {
         if (!user?.token) return;
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-            const endpoint = (user?.role === "Admin" || user?.role === "Superadmin") ? "/complaints" : "/complaints/my";
+            const endpoint = (user?.role === "Admin" || user?.role === "Superadmin") ? "/complaints?limit=1000" : "/complaints/my?limit=1000";
             const res = await fetch(`${baseUrl}${endpoint}`, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
@@ -264,7 +264,7 @@ export default function ComplaintsPage() {
                                 </tr>
                             </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {complaints.filter((c: any) => c.assetId && c.userId).map((complaint: any) => (
+                        {currentComplaints.filter((c: any) => c.assetId && c.userId).map((complaint: any) => (
                             <tr key={complaint._id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-6 py-4">
                                     <span className="font-mono text-sm font-semibold text-[#76C043]">{complaint.ticketId}</span>

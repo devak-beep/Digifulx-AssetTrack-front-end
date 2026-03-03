@@ -55,6 +55,7 @@ export default function AssetsPage() {
         brand: "",
         status: ""
     });
+    const [searchQuery, setSearchQuery] = useState("");
     
     // Form state
     const [formData, setFormData] = useState({
@@ -89,10 +90,18 @@ export default function AssetsPage() {
         if (filters.status) {
             filtered = filtered.filter(a => a.status === filters.status);
         }
+        if (searchQuery) {
+            filtered = filtered.filter(a => 
+                a.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                a.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                a.serialNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                a.category?.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
         
         setFilteredAssets(filtered);
         setCurrentPage(1); // Reset to first page when filters change
-    }, [assets, filters]);
+    }, [assets, filters, searchQuery]);
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
@@ -353,6 +362,15 @@ export default function AssetsPage() {
                     
                     {/* Filters */}
                     <div className="px-6 py-4 bg-white border-b border-gray-200">
+                        <div className="mb-4">
+                            <input
+                                type="text"
+                                placeholder="Search by brand, model, serial number, or category..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
+                            />
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
