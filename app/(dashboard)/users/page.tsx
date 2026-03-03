@@ -85,10 +85,11 @@ export default function UsersPage() {
         if (assetSelection.category) {
             const filtered = assets.filter(a => 
                 a.category === assetSelection.category && 
-                a.status === 'available' && 
+                a.status === 'available' &&
                 a.assetType === 'assignable'
             );
             setFilteredAssets(filtered);
+            console.log(`Filtered assets for ${assetSelection.category}:`, filtered);
         } else {
             setFilteredAssets([]);
         }
@@ -135,9 +136,10 @@ export default function UsersPage() {
                 const assetList = data.data.masterData || [];
                 setAssets(assetList);
                 
-                // Extract unique categories
-                const uniqueCategories = [...new Set(assetList.map((a: Asset) => a.category))];
+                // Extract unique categories from assignable assets only
+                const uniqueCategories = [...new Set(assetList.map((a: Asset) => a.category))].filter(Boolean);
                 setCategories(uniqueCategories);
+                console.log('Assignable categories loaded:', uniqueCategories);
             }
         } catch (err) {
             console.error(err);
@@ -407,7 +409,13 @@ export default function UsersPage() {
         }
     };
 
-    const totalPages = filteredAssets.length > 0 ? Math.ceil(filteredAssets.length / itemsPerPage) : 1;
+    const usersPerPage = 10;
+    const totalPages = users.length > 0 ? Math.ceil(users.length / usersPerPage) : 1;
+    const userStartIndex = (currentPage - 1) * usersPerPage;
+    const userEndIndex = userStartIndex + usersPerPage;
+    const currentUsers = users.slice(userStartIndex, userEndIndex);
+
+    const assetTotalPages = filteredAssets.length > 0 ? Math.ceil(filteredAssets.length / itemsPerPage) : 1;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const currentItems = filteredAssets.slice(startIndex, endIndex);
@@ -486,7 +494,7 @@ export default function UsersPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {users.map((u) => (
+                                {currentUsers.map((u) => (
                                     <tr key={u._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-base font-semibold text-gray-900 capitalize">{u.name}</div>
@@ -556,7 +564,7 @@ export default function UsersPage() {
                         {/* Pagination */}
                         <div className="mt-6 flex items-center justify-between px-6 py-4 bg-gray-50 border-t">
                             <div className="text-sm text-gray-700">
-                                Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, filteredAssets.length)}</span> of <span className="font-semibold">{filteredAssets.length}</span> items
+                                Showing <span className="font-semibold">{userStartIndex + 1}</span> to <span className="font-semibold">{Math.min(userEndIndex, users.length)}</span> of <span className="font-semibold">{users.length}</span> users
                             </div>
                             <div className="flex items-center gap-2">
                                 <button
@@ -576,6 +584,8 @@ export default function UsersPage() {
                                 </button>
                             </div>
                         </div>
+                    
+
                     </div>
                 </div>
             )}

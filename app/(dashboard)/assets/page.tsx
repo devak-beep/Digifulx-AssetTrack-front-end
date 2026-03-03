@@ -704,18 +704,15 @@ export default function AssetsPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Asset Type *</label>
                                     <select
                                         required
-                                        value={formData.status}
-                                        onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                        value={formData.assetType}
+                                        onChange={(e) => setFormData({...formData, assetType: e.target.value})}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#76C043] focus:border-transparent"
                                     >
-                                        <option value="available">Available</option>
-                                        <option value="assigned">Assigned</option>
-                                        <option value="under-repair">Under Repair</option>
-                                        <option value="damaged">Damaged</option>
-                                        <option value="retired">Retired</option>
+                                        <option value="assignable">Assignable</option>
+                                        <option value="non-assignable">Non-Assignable</option>
                                     </select>
                                 </div>
 
