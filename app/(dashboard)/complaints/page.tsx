@@ -1,17 +1,53 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useAuth } from "@/context/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+
+interface Asset {
+    _id: string;
+    name: string;
+    serialNumber: string;
+    status?: string;
+}
+
+interface Assignment {
+    _id: string;
+    assetId: Asset | null;
+    status: string;
+}
+
+interface Complaint {
+    _id: string;
+    ticketId: string;
+    title: string;
+    description: string;
+    priority: "low" | "medium" | "high" | "critical";
+    status: "new" | "acknowledged" | "in-progress" | "completed";
+    assetId: {
+        _id: string;
+        name: string;
+        serialNumber: string;
+        status?: string;
+    } | null;
+    userId: {
+        _id: string;
+        name: string;
+    } | null;
+    createdAt: string;
+    updatedAt: string;
+}
 
 export default function ComplaintsPage() {
     const { user } = useAuth();
-    const [complaints, setComplaints] = useState([]);
+    const [complaints, setComplaints] = useState<Complaint[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [filters, setFilters] = useState({
         priority: "",
         status: ""
     });
-    const [assignments, setAssignments] = useState([]);
+    const [assignments, setAssignments] = useState<Assignment[]>([]);
     const [showModal, setShowModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [selectedComplaint, setSelectedComplaint] = useState<string | null>(null);
@@ -19,8 +55,8 @@ export default function ComplaintsPage() {
     const [loading, setLoading] = useState(true);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
-    const [complaintToEdit, setComplaintToEdit] = useState<any>(null);
-    const [complaintToView, setComplaintToView] = useState<any>(null);
+    const [complaintToEdit, setComplaintToEdit] = useState<any | null>(null);
+    const [complaintToView, setComplaintToView] = useState<any | null>(null);
     const [editFormData, setEditFormData] = useState({
         title: "",
         description: "",
@@ -38,15 +74,7 @@ export default function ComplaintsPage() {
 
     const isAdmin = user?.role === "Admin" || user?.role === "Superadmin";
 
-    useEffect(() => {
-        if (user?.token) fetchComplaints();
-    }, [user?.token]);
-
-    useEffect(() => {
-        if (!isAdmin && complaints.length >= 0 && user?.id) fetchMyAssignments();
-    }, [complaints, user?.id]);
-
-    const fetchComplaints = async () => {
+    const fetchComplaints = useCallback(async () => {
         if (!user?.token) return;
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
@@ -66,9 +94,9 @@ export default function ComplaintsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user?.token, user?.role]);
 
-    const fetchMyAssignments = async () => {
+    const fetchMyAssignments = useCallback(async () => {
         if (!user?.id) return;
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
@@ -89,7 +117,15 @@ export default function ComplaintsPage() {
         } catch (error) {
             console.error("Fetch assignments error:", error);
         }
-    };
+    }, [user?.id, user?.token, complaints]);
+
+    useEffect(() => {
+        if (user?.token) fetchComplaints();
+    }, [user?.token, fetchComplaints]);
+
+    useEffect(() => {
+        if (!isAdmin && complaints.length >= 0 && user?.id) fetchMyAssignments();
+    }, [complaints, user?.id, isAdmin, fetchMyAssignments]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -474,7 +510,7 @@ export default function ComplaintsPage() {
                                     required
                                 >
                                     <option value="">Select Asset</option>
-                                    {assignments.filter((a: any) => a.assetId).map((a: any) => (
+                                    {assignments.filter((a: Assignment) => a.assetId).map((a: Assignment) => (
                                         <option key={a._id} value={a.assetId?._id}>
                                             {a.assetId?.name || 'Unknown'} - {a.assetId?.serialNumber || 'N/A'}
                                         </option>
@@ -670,7 +706,7 @@ export default function ComplaintsPage() {
                 </div>
             )}
 
-            {showViewModal && complaintToView && (
+            {showViewModal && complaintToView ? (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
                         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
@@ -734,7 +770,7 @@ export default function ComplaintsPage() {
                         </div>
                     </div>
                 </div>
-            )}
+            ) : null}
         </div>
     );
 }
