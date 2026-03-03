@@ -18,7 +18,9 @@ export default function ComplaintsPage() {
     const [selectedStatus, setSelectedStatus] = useState<string>("");
     const [loading, setLoading] = useState(true);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showViewModal, setShowViewModal] = useState(false);
     const [complaintToEdit, setComplaintToEdit] = useState<any>(null);
+    const [complaintToView, setComplaintToView] = useState<any>(null);
     const [editFormData, setEditFormData] = useState({
         title: "",
         description: "",
@@ -365,6 +367,15 @@ export default function ComplaintsPage() {
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setComplaintToView(complaint);
+                                                setShowViewModal(true);
+                                            }}
+                                            className="text-sm font-medium text-green-600 hover:text-green-800 hover:underline"
+                                        >
+                                            View
+                                        </button>
                                         {!isAdmin && complaint.status === 'new' && (
                                             <button
                                                 onClick={() => {
@@ -655,6 +666,72 @@ export default function ComplaintsPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {showViewModal && complaintToView && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+                        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-900">Complaint Details</h2>
+                            <button
+                                onClick={() => setShowViewModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Ticket ID</label>
+                                <p className="text-base text-gray-900 font-mono">{complaintToView.ticketId}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                                <p className="text-base text-gray-900">{complaintToView.title}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <p className="text-base text-gray-700 whitespace-pre-wrap">{complaintToView.description}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                                        complaintToView.priority === 'high' ? 'bg-red-100 text-red-700' :
+                                        complaintToView.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-green-100 text-green-700'
+                                    }`}>
+                                        {complaintToView.priority}
+                                    </span>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold capitalize bg-blue-100 text-blue-700">
+                                        {complaintToView.status}
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Asset</label>
+                                <p className="text-base text-gray-900">{complaintToView.assetId?.name || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Created Date</label>
+                                <p className="text-base text-gray-900">{new Date(complaintToView.createdAt).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
+                            <button
+                                onClick={() => setShowViewModal(false)}
+                                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -38,6 +38,7 @@ export default function MaintenancePage() {
     const [submitting, setSubmitting] = useState(false);
     const [showCompleteModal, setShowCompleteModal] = useState(false);
     const [selectedMaintenance, setSelectedMaintenance] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'upcoming' | 'archive'>('upcoming');
     const [formData, setFormData] = useState({
         assetId: "",
         type: "preventive",
@@ -208,21 +209,111 @@ export default function MaintenancePage() {
     };
 
     const sortedMaintenances = [...maintenances].sort((a, b) => {
-        const dateA = a.nextDate ? new Date(a.nextDate).getTime() : Infinity;
-        const dateB = b.nextDate ? new Date(b.nextDate).getTime() : Infinity;
-        return dateA - dateB;
+        // Parse dates properly - handle both ISO and DD/MM/YYYY formats
+        const parseDate = (dateStr: string) => {
+            if (!dateStr) return Infinity;
+            // Try ISO format first
+            if (dateStr.includes('-')) {
+                return new Date(dateStr).getTime();
+            }
+            // Handle DD/MM/YYYY format
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime();
+            }
+            return Infinity;
+        };
+        
+        // Get today's date at start of day
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTime = today.getTime();
+        
+        const dateA = parseDate(a.nextDate);
+        const dateB = parseDate(b.nextDate);
+        
+        // Separate upcoming (today and future) and past dates
+        const isAUpcoming = dateA >= todayTime;
+        const isBUpcoming = dateB >= todayTime;
+        
+        // Upcoming dates come first, sorted by earliest
+        if (isAUpcoming && isBUpcoming) {
+            return dateA - dateB;
+        }
+        // If only one is upcoming, it comes first
+        if (isAUpcoming) return -1;
+        if (isBUpcoming) return 1;
+        // Both are past dates, sort by latest first
+        return dateB - dateA;
     });
 
-    const totalPages = sortedMaintenances.length > 0 ? Math.ceil(sortedMaintenances.length / itemsPerPage) : 1;
+    // Filter by tab
+    const filteredByTab = activeTab === 'upcoming' 
+        ? sortedMaintenances.filter(m => {
+            const parseDate = (dateStr: string) => {
+                if (!dateStr) return Infinity;
+                if (dateStr.includes('-')) return new Date(dateStr).getTime();
+                const parts = dateStr.split('/');
+                if (parts.length === 3) return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime();
+                return Infinity;
+            };
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return parseDate(m.nextDate) >= today.getTime();
+        })
+        : sortedMaintenances.filter(m => {
+            const parseDate = (dateStr: string) => {
+                if (!dateStr) return Infinity;
+                if (dateStr.includes('-')) return new Date(dateStr).getTime();
+                const parts = dateStr.split('/');
+                if (parts.length === 3) return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime();
+                return Infinity;
+            };
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return parseDate(m.nextDate) < today.getTime();
+        });
+
+    const totalPages = filteredByTab.length > 0 ? Math.ceil(filteredByTab.length / itemsPerPage) : 1;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const currentMaintenance = sortedMaintenances.slice(startIndex, endIndex);
+    const currentMaintenance = filteredByTab.slice(startIndex, endIndex);
 
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">Maintenance</h1>
                 <p className="text-gray-600 mt-2">Schedule and track asset maintenance</p>
+            </div>
+
+            {/* Tabs */}
+            <div className="mb-6 flex gap-4 border-b border-gray-200">
+                <button
+                    onClick={() => {
+                        setActiveTab('upcoming');
+                        setCurrentPage(1);
+                    }}
+                    className={`px-4 py-3 font-medium border-b-2 transition-colors ${
+                        activeTab === 'upcoming'
+                            ? 'border-[#76C043] text-[#76C043]'
+                            : 'border-transparent text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                    Upcoming Maintenance
+                </button>
+                <button
+                    onClick={() => {
+                        setActiveTab('archive');
+                        setCurrentPage(1);
+                    }}
+                    className={`px-4 py-3 font-medium border-b-2 transition-colors ${
+                        activeTab === 'archive'
+                            ? 'border-[#76C043] text-[#76C043]'
+                            : 'border-transparent text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                    Archive
+                </button>
             </div>
 
             {loading ? (
@@ -251,7 +342,7 @@ export default function MaintenancePage() {
                     <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center justify-between">
                             <p className="text-base text-gray-600">
-                                Total <span className="font-medium text-gray-900">{sortedMaintenances.length}</span> maintenance records
+                                Total <span className="font-medium text-gray-900">{filteredByTab.length}</span> {activeTab === 'upcoming' ? 'upcoming' : 'archived'} maintenance records
                             </p>
                             <button 
                                 onClick={() => setShowModal(true)}
@@ -331,7 +422,7 @@ export default function MaintenancePage() {
                         {/* Pagination */}
                         <div className="mt-6 flex items-center justify-between px-6 py-4 bg-gray-50 border-t">
                             <div className="text-sm text-gray-700">
-                                Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, sortedMaintenances.length)}</span> of <span className="font-semibold">{sortedMaintenances.length}</span> items
+                                Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, filteredByTab.length)}</span> of <span className="font-semibold">{filteredByTab.length}</span> items
                             </div>
                             <div className="flex items-center gap-2">
                                 <button
